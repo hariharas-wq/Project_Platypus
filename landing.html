@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Project Platypus — Virtual Town Hall</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,700&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+<style>
+  :root{
+    --abyss:#081019;
+    --deep:#0d3b4a;
+    --teal:#12556a;
+    --cyan:#3fd0e0;
+    --brass:#c9a24b;
+    --foam:#e8f4f6;
+    --muted:#7d97a4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:#060c14;color:var(--foam);
+    font-family:'Space Grotesk',system-ui,sans-serif;overflow:hidden}
+  #root{height:100vh}
+
+  /* ===== initial dive: whole scene fades from black + zooms slightly ===== */
+  .scene{position:fixed;inset:0;overflow:hidden;
+    animation:dive 2.4s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes dive{
+    0%{opacity:0;transform:scale(1.12)}
+    100%{opacity:1;transform:scale(1)}
+  }
+
+  /* layered depth gradient */
+  .depth{position:absolute;inset:0;
+    background:
+      radial-gradient(140% 100% at 50% -20%, #1b4c68 0%, transparent 50%),
+      radial-gradient(100% 70% at 50% 120%, rgba(201,162,75,.12), transparent 60%),
+      linear-gradient(180deg, #0e2c40 0%, #081722 45%, #04080f 100%);}
+
+  /* animated god-rays (SVG-free, pure CSS) */
+  .rays{position:absolute;top:-30%;left:50%;width:180%;height:160%;
+    transform:translateX(-50%);mix-blend-mode:screen;opacity:.55;
+    background:repeating-conic-gradient(from 90deg at 50% 0%,
+      rgba(63,208,224,.10) 0deg, transparent 3deg, transparent 7deg,
+      rgba(63,208,224,.08) 9deg);
+    animation:rayshift 14s ease-in-out infinite;filter:blur(6px)}
+  @keyframes rayshift{0%,100%{transform:translateX(-50%) rotate(-2deg)}
+    50%{transform:translateX(-50%) rotate(2deg)}}
+
+  /* drifting light shafts */
+  .shaft{position:absolute;top:-20%;width:30%;height:150%;
+    background:linear-gradient(180deg, rgba(63,208,224,.16), transparent 72%);
+    filter:blur(26px);transform:skewX(-12deg);mix-blend-mode:screen;
+    animation:sway 12s ease-in-out infinite}
+  .shaft.s1{left:8%}
+  .shaft.s2{left:42%;height:172%;opacity:.7;animation-delay:-5s}
+  .shaft.s3{left:72%;opacity:.5;animation-delay:-8s}
+  @keyframes sway{0%,100%{transform:skewX(-12deg) translateX(0)}
+    50%{transform:skewX(-7deg) translateX(28px)}}
+
+  /* caustic light net on the "floor" */
+  .caustics{position:absolute;left:-10%;right:-10%;bottom:-6%;height:46%;
+    opacity:.35;mix-blend-mode:screen;
+    background:
+      radial-gradient(circle at 20% 40%, rgba(63,208,224,.5) 0 2px, transparent 3px),
+      radial-gradient(circle at 60% 60%, rgba(63,208,224,.4) 0 2px, transparent 3px),
+      radial-gradient(circle at 80% 30%, rgba(63,208,224,.4) 0 2px, transparent 3px);
+    background-size:180px 120px, 220px 160px, 260px 140px;
+    animation:caustic 18s linear infinite}
+  @keyframes caustic{0%{background-position:0 0,0 0,0 0}
+    100%{background-position:180px 120px,-220px 160px,260px -140px}}
+
+  /* vignette to focus the center */
+  .vignette{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(2,6,12,.72) 100%)}
+
+  .mote{position:absolute;bottom:-20px;border-radius:50%;
+    background:radial-gradient(circle,rgba(232,244,246,.95),rgba(63,208,224,.15));
+    animation:rise linear infinite;opacity:0}
+  @keyframes rise{0%{transform:translateY(0) translateX(0);opacity:0}
+    10%{opacity:.85}90%{opacity:.5}
+    100%{transform:translateY(-104vh) translateX(var(--drift));opacity:0}}
+
+  /* ===== content ===== */
+  .stage{position:relative;z-index:3;height:100vh;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:24px}
+
+  .eyebrow{font-size:13px;letter-spacing:.42em;text-transform:uppercase;
+    color:var(--brass);font-weight:500;opacity:0;transform:translateY(10px);
+    animation:fadeUp .9s ease forwards 1.6s}
+  .eyebrow::before,.eyebrow::after{content:"";display:inline-block;width:34px;
+    height:1px;background:var(--brass);vertical-align:middle;margin:0 14px;opacity:.6}
+
+  h1{font-family:'Fraunces',serif;font-weight:400;
+    font-size:clamp(38px,7.6vw,88px);line-height:1.02;letter-spacing:-.01em;
+    margin:18px 0 6px;perspective:800px}
+  /* each line rises + un-blurs, staggered */
+  h1 .line{display:block;opacity:0;transform:translateY(26px) rotateX(28deg);
+    filter:blur(8px);transform-origin:50% 100%;
+    animation:lineIn 1.15s cubic-bezier(.16,.84,.3,1) forwards}
+  h1 .l1{animation-delay:1.8s}
+  h1 .l2{animation-delay:2.05s}
+  @keyframes lineIn{to{opacity:1;transform:translateY(0) rotateX(0);filter:blur(0)}}
+  h1 .give{font-style:italic;color:var(--cyan);font-weight:300}
+  h1 .seat{color:var(--brass);position:relative}
+  /* underline sweep under "seat" */
+  h1 .seat::after{content:"";position:absolute;left:0;bottom:.06em;height:2px;
+    width:100%;background:linear-gradient(90deg,transparent,var(--brass),transparent);
+    transform:scaleX(0);transform-origin:left;animation:sweep .8s ease forwards 3s}
+  @keyframes sweep{to{transform:scaleX(1)}}
+
+  .sub{max-width:620px;font-size:clamp(15px,1.6vw,18px);line-height:1.6;
+    color:#a9c2cc;font-weight:300;margin-top:12px;opacity:0;transform:translateY(14px);
+    animation:fadeUp 1s ease forwards 2.5s}
+
+  .bench{display:flex;gap:18px;margin:44px 0 40px;flex-wrap:wrap;justify-content:center}
+  .placard{position:relative;width:214px;padding:18px 18px 16px;text-align:left;
+    border-radius:4px;
+    background:linear-gradient(160deg, rgba(18,85,106,.55), rgba(8,20,32,.78));
+    border:1px solid rgba(63,208,224,.22);
+    box-shadow:0 18px 44px -20px rgba(0,0,0,.85), inset 0 1px 0 rgba(232,244,246,.06);
+    backdrop-filter:blur(6px);opacity:0;transform:translateY(46px) scale(.95);
+    animation:surface 1.1s cubic-bezier(.16,.84,.28,1) forwards}
+  .placard.p1{animation-delay:2.9s}
+  .placard.p2{animation-delay:3.1s}
+  .placard.p3{animation-delay:3.3s}
+  @keyframes surface{0%{opacity:0;transform:translateY(48px) scale(.94)}
+    55%{opacity:1}100%{opacity:1;transform:translateY(0) scale(1)}}
+  /* sonar ping ring when a placard surfaces */
+  .placard .ping{position:absolute;left:50%;top:50%;width:10px;height:10px;
+    border:1px solid var(--cyan);border-radius:50%;transform:translate(-50%,-50%);
+    opacity:0}
+  .placard.p1 .ping{animation:ping 1.4s ease-out 2.9s}
+  .placard.p2 .ping{animation:ping 1.4s ease-out 3.1s}
+  .placard.p3 .ping{animation:ping 1.4s ease-out 3.3s}
+  @keyframes ping{0%{opacity:.7;width:10px;height:10px}
+    100%{opacity:0;width:340px;height:340px}}
+  .placard .gavel{position:absolute;top:-1px;left:18px;right:18px;height:2px;
+    background:linear-gradient(90deg,transparent,var(--brass),transparent)}
+  .p-name{font-family:'Fraunces',serif;font-size:19px;font-weight:600;
+    color:var(--foam);line-height:1.15;position:relative;z-index:1}
+  .p-sci{font-size:11.5px;font-style:italic;color:var(--muted);margin-top:2px;
+    font-family:'Fraunces',serif}
+  .p-row{display:flex;align-items:center;gap:8px;margin-top:14px}
+  .dot{width:7px;height:7px;border-radius:50%}
+  .dot.rich{background:var(--cyan);box-shadow:0 0 8px var(--cyan);
+    animation:beacon 2.4s ease-in-out infinite}
+  .dot.poor{background:#e0693f;box-shadow:0 0 8px #e0693f;
+    animation:beacon 2.4s ease-in-out infinite}
+  @keyframes beacon{0%,100%{opacity:1}50%{opacity:.35}}
+  .p-status{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#b9d2da}
+  .p-tier{margin-top:8px;font-size:11px;color:var(--muted)}
+  .p-tier b{color:#b9d2da;font-weight:500}
+
+  .cta-wrap{opacity:0;transform:translateY(14px);animation:fadeUp .9s ease forwards 3.7s}
+  .cta{display:inline-flex;align-items:center;gap:14px;font-weight:500;font-size:16px;
+    letter-spacing:.02em;color:var(--abyss);
+    background:linear-gradient(180deg,#e8f4f6,#bfe4ea);border:none;border-radius:2px;
+    padding:17px 34px;cursor:pointer;text-decoration:none;position:relative;overflow:hidden;
+    box-shadow:0 14px 34px -12px rgba(63,208,224,.55);
+    transition:transform .25s ease, box-shadow .25s ease}
+  .cta:hover{transform:translateY(-3px);box-shadow:0 24px 50px -12px rgba(63,208,224,.8)}
+  .cta .arrow{transition:transform .25s ease}
+  .cta:hover .arrow{transform:translateX(5px)}
+  /* shimmer sweep across the button */
+  .cta::before{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.7),transparent);
+    transform:skewX(-20deg);animation:shimmer 3.6s ease-in-out infinite 4s}
+  @keyframes shimmer{0%{left:-60%}30%{left:130%}100%{left:130%}}
+  .cta::after{content:"";position:absolute;inset:0;border-radius:2px;
+    border:1px solid rgba(201,162,75,.55);transform:scale(1.06);opacity:0;
+    transition:opacity .25s,transform .25s}
+  .cta:hover::after{opacity:1;transform:scale(1.12)}
+  .cta-note{margin-top:14px;font-size:12px;color:var(--muted);letter-spacing:.04em}
+
+  .footer{position:fixed;bottom:18px;left:0;right:0;z-index:4;display:flex;
+    justify-content:space-between;padding:0 28px;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted);opacity:0;animation:fadeIn 1s ease forwards 4s}
+  .footer .live{display:flex;align-items:center;gap:8px}
+  .footer .live .pulse{width:7px;height:7px;border-radius:50%;background:var(--cyan);
+    box-shadow:0 0 8px var(--cyan);animation:blink 2s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* scroll-cue chevron */
+  .depthcue{position:fixed;bottom:52px;left:50%;transform:translateX(-50%);z-index:4;
+    color:var(--muted);opacity:0;animation:fadeIn 1s ease forwards 4.3s}
+  .depthcue span{display:block;width:9px;height:9px;border-right:1px solid var(--cyan);
+    border-bottom:1px solid var(--cyan);transform:rotate(45deg);margin:-3px auto;
+    animation:cue 1.8s ease-in-out infinite}
+  .depthcue span:nth-child(2){animation-delay:.2s;opacity:.6}
+  @keyframes cue{0%,100%{opacity:.2}50%{opacity:1}}
+
+  @keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeIn{to{opacity:1}}
+
+  @media (max-width:560px){.placard{width:100%;max-width:280px}
+    .footer{flex-direction:column;gap:6px;align-items:center;text-align:center}}
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001s !important;animation-delay:0s !important}
+    .eyebrow,h1 .line,.sub,.placard,.cta-wrap,.footer{opacity:1;transform:none;filter:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const {
+  useEffect,
+  useRef
+} = React;
+const DELEGATES = [{
+  name: "Great White Shark",
+  sci: "Carcharodon carcharias",
+  status: "IUCN · Vulnerable",
+  data: "rich",
+  tier: "Tier 1 · high confidence"
+}, {
+  name: "Australian Sea Lion",
+  sci: "Neophoca cinerea",
+  status: "IUCN · Endangered",
+  data: "rich",
+  tier: "Tier 1 · high confidence"
+}, {
+  name: "Beach Users",
+  sci: "Coastal community",
+  status: "No primary dataset",
+  data: "poor",
+  tier: "Tier 4 · low confidence"
+}];
+const CONFERENCE_URL = "http://localhost:5000";
+function speakWelcome() {
+  try {
+    if (!("speechSynthesis" in window)) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance("Welcome, all, to the Virtual Town Hall.");
+    u.rate = 0.92;
+    u.pitch = 1.0;
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => /female|samantha|karen|google uk english female/i.test(v.name + " " + v.voiceURI)) || voices.find(v => v.lang && v.lang.startsWith("en"));
+    if (preferred) u.voice = preferred;
+    window.speechSynthesis.speak(u);
+  } catch (e) {/* silent */}
+}
+function Motes() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const host = ref.current;
+    if (!host) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    for (let i = 0; i < 30; i++) {
+      const m = document.createElement("div");
+      m.className = "mote";
+      const s = 2 + Math.random() * 4;
+      m.style.width = s + "px";
+      m.style.height = s + "px";
+      m.style.left = Math.random() * 100 + "%";
+      m.style.setProperty("--drift", Math.random() * 70 - 35 + "px");
+      m.style.animationDuration = 9 + Math.random() * 13 + "s";
+      m.style.animationDelay = -Math.random() * 16 + "s";
+      host.appendChild(m);
+    }
+  }, []);
+  return /*#__PURE__*/React.createElement("div", {
+    ref: ref
+  });
+}
+function Placard({
+  d,
+  i
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "placard p" + (i + 1)
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "ping"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "gavel"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "p-name"
+  }, d.name), /*#__PURE__*/React.createElement("div", {
+    className: "p-sci"
+  }, d.sci), /*#__PURE__*/React.createElement("div", {
+    className: "p-row"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "dot " + d.data
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "p-status"
+  }, d.status)), /*#__PURE__*/React.createElement("div", {
+    className: "p-tier"
+  }, /*#__PURE__*/React.createElement("b", null, d.data === "rich" ? "Evidence-backed" : "Data-poor"), " — ", d.tier));
+}
+function App() {
+  useEffect(() => {
+    let spoken = false;
+    const fire = () => {
+      if (spoken) return;
+      spoken = true;
+      speakWelcome();
+      window.removeEventListener("pointerdown", fire);
+      window.removeEventListener("keydown", fire);
+    };
+    // Attempt shortly after load (works where autoplay is allowed)...
+    const t = setTimeout(() => {
+      speakWelcome();
+      // if the browser blocked it, the first interaction will speak instead
+      window.addEventListener("pointerdown", fire, {
+        once: false
+      });
+      window.addEventListener("keydown", fire, {
+        once: false
+      });
+    }, 1600);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("pointerdown", fire);
+      window.removeEventListener("keydown", fire);
+    };
+  }, []);
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "scene"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "depth"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "rays"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "shaft s1"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "shaft s2"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "shaft s3"
+  }), /*#__PURE__*/React.createElement(Motes, null), /*#__PURE__*/React.createElement("div", {
+    className: "caustics"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "vignette"
+  })), /*#__PURE__*/React.createElement("main", {
+    className: "stage"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "eyebrow"
+  }, "Project Platypus · Virtual Town Hall"), /*#__PURE__*/React.createElement("h1", null, /*#__PURE__*/React.createElement("span", {
+    className: "line l1"
+  }, "We gave the sea"), /*#__PURE__*/React.createElement("span", {
+    className: "line l2"
+  }, "a ", /*#__PURE__*/React.createElement("span", {
+    className: "give"
+  }, "voice"), " — and a ", /*#__PURE__*/React.createElement("span", {
+    className: "seat"
+  }, "seat"), ".")), /*#__PURE__*/React.createElement("p", {
+    className: "sub"
+  }, "Endangered species can't argue their case in the rooms where coastal policy is decided. Here, each is represented by an ambassador that speaks from verified evidence — and flags exactly how much it can prove."), /*#__PURE__*/React.createElement("div", {
+    className: "bench"
+  }, DELEGATES.map((d, i) => /*#__PURE__*/React.createElement(Placard, {
+    key: d.name,
+    d: d,
+    i: i
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "cta-wrap"
+  }, /*#__PURE__*/React.createElement("a", {
+    className: "cta",
+    href: CONFERENCE_URL
+  }, "Enter the virtual conference ", /*#__PURE__*/React.createElement("span", {
+    className: "arrow"
+  }, "→")), /*#__PURE__*/React.createElement("div", {
+    className: "cta-note"
+  }, "The delegates are seated. The floor is open."))), /*#__PURE__*/React.createElement("div", {
+    className: "footer"
+  }, /*#__PURE__*/React.createElement("span", null, "IUCN Red List · GBIF occurrence data"), /*#__PURE__*/React.createElement("span", {
+    className: "live"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "pulse"
+  }), " Chamber live")), /*#__PURE__*/React.createElement("div", {
+    className: "depthcue"
+  }, /*#__PURE__*/React.createElement("span", null), /*#__PURE__*/React.createElement("span", null)));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
+</script>
+</body>
+</html>
