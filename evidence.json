@@ -1,0 +1,92 @@
+{
+  "great_white_shark": {
+    "display_name": "Great White Shark",
+    "scientific_name": "Carcharodon carcharias",
+    "constituency_type": "species",
+    "data_status": "data-rich",
+    "facts": [
+      {
+        "claim": "Listed as Vulnerable on the IUCN Red List.",
+        "source": "IUCN Red List assessment (Carcharodon carcharias)",
+        "tier": 1,
+        "confidence": "high"
+      },
+      {
+        "claim": "Global population inferred to have declined 30-49% over three generations (approx. 159 years).",
+        "source": "IUCN Red List assessment",
+        "tier": 1,
+        "confidence": "high"
+      },
+      {
+        "claim": "Generation length is approximately 53 years.",
+        "source": "IUCN Red List assessment",
+        "tier": 1,
+        "confidence": "high"
+      },
+      {
+        "claim": "18,261 georeferenced occurrence records held in GBIF.",
+        "source": "GBIF Occurrence API (live)",
+        "tier": 2,
+        "confidence": "high"
+      },
+      {
+        "claim": "Slow to mature and low fecundity, so populations recover slowly from losses to nets and drumlines.",
+        "source": "IUCN Red List assessment (life-history)",
+        "tier": 1,
+        "confidence": "medium"
+      }
+    ]
+  },
+  "australian_sea_lion": {
+    "display_name": "Australian Sea Lion",
+    "scientific_name": "Neophoca cinerea",
+    "constituency_type": "species",
+    "data_status": "data-rich",
+    "facts": [
+      {
+        "claim": "Listed as Endangered on the IUCN Red List.",
+        "source": "IUCN Red List assessment (Neophoca cinerea)",
+        "tier": 1,
+        "confidence": "high"
+      },
+      {
+        "claim": "Endemic to southern and western Australian waters.",
+        "source": "IUCN Red List assessment",
+        "tier": 1,
+        "confidence": "high"
+      },
+      {
+        "claim": "Highly site-faithful breeding, so localised bycatch can wipe out whole sub-colonies.",
+        "source": "IUCN Red List assessment (ecology)",
+        "tier": 1,
+        "confidence": "medium"
+      },
+      {
+        "claim": "117,671 georeferenced occurrence records held in GBIF.",
+        "source": "GBIF Occurrence API (live)",
+        "tier": 2,
+        "confidence": "high"
+      }
+    ]
+  },
+  "beach_users": {
+    "display_name": "Beach Users",
+    "scientific_name": null,
+    "constituency_type": "community",
+    "data_status": "data-poor",
+    "facts": [
+      {
+        "claim": "Represents swimmers, surfers and coastal tourism who value both safety and a living ocean.",
+        "source": "Constituency definition (no primary dataset)",
+        "tier": 4,
+        "confidence": "low"
+      },
+      {
+        "claim": "Shark-control programs are often justified on public-safety grounds, but effectiveness evidence is contested.",
+        "source": "General policy record (no single primary source)",
+        "tier": 3,
+        "confidence": "low"
+      }
+    ]
+  }
+}

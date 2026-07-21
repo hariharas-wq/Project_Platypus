@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Shark Speaks — Team 56 · Project Platypus</title>
+    <style>
+      :root {
+        --abyss: #03181f;
+        --deep: #082a30;
+        --teal: #33d6c0;
+        --teal-d: #1a7a72;
+        --gold: #f4c95d;
+        --coral: #f96167;
+        --ice: #d6efe9;
+        --mute: #6f9a95;
+        --line: #0f3d42;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: radial-gradient(
+          120% 90% at 50% 0%,
+          #0a3b40 0%,
+          var(--abyss) 70%
+        );
+        color: var(--ice);
+        overflow: hidden;
+      }
+      #stage {
+        position: fixed;
+        inset: 0;
+      }
+      canvas {
+        display: block;
+      }
+
+      .top {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 18px 26px;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        pointer-events: none;
+      }
+      .fin {
+        width: 34px;
+        height: 34px;
+        flex: none;
+      }
+      .top h1 {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+      .top .eyebrow {
+        font-size: 11px;
+        color: var(--teal);
+        letter-spacing: 3px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .top .titles {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      #bubble {
+        position: fixed;
+        top: 92px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-8px);
+        width: min(680px, 92vw);
+        background: rgba(8, 42, 48, 0.94);
+        border: 1px solid var(--teal-d);
+        border-radius: 16px;
+        padding: 20px 22px;
+        z-index: 9;
+        opacity: 0;
+        transition:
+          opacity 0.35s,
+          transform 0.35s;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+      }
+      #bubble.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      #bubble .say {
+        font-size: 17px;
+        line-height: 1.5;
+        color: #fff;
+      }
+      #bubble .chips {
+        margin-top: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+      .chip {
+        font-size: 11.5px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(51, 214, 192, 0.15);
+        color: var(--teal);
+        border: 1px solid var(--teal-d);
+      }
+      .chip.warn {
+        background: rgba(249, 97, 103, 0.14);
+        color: var(--coral);
+        border-color: #7c2f33;
+      }
+      #bubble .conf {
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--mute);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .conf .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+      }
+      .conf.high .dot {
+        background: var(--teal);
+      }
+      .conf.med .dot {
+        background: var(--gold);
+      }
+      .conf.low .dot {
+        background: var(--coral);
+      }
+
+      .dock {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10;
+        padding: 20px 20px 26px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+      .dock .prompt {
+        font-size: 13px;
+        color: var(--mute);
+      }
+      .dock .prompt b {
+        color: var(--ice);
+        font-weight: 600;
+      }
+      .cards {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+        max-width: 960px;
+      }
+      .policy {
+        cursor: pointer;
+        background: var(--deep);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px 16px;
+        width: 230px;
+        text-align: left;
+        transition:
+          transform 0.15s,
+          border-color 0.15s,
+          background 0.15s;
+        color: inherit;
+        font: inherit;
+      }
+      .policy:hover {
+        transform: translateY(-3px);
+        border-color: var(--teal);
+        background: #0c343a;
+      }
+      .policy:focus-visible {
+        outline: 2px solid var(--teal);
+        outline-offset: 2px;
+      }
+      .policy .tag {
+        font-size: 10.5px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .policy.lethal .tag {
+        color: var(--coral);
+      }
+      .policy.smart .tag {
+        color: var(--gold);
+      }
+      .policy.ended .tag {
+        color: var(--teal);
+      }
+      .policy .q {
+        font-size: 14px;
+        line-height: 1.35;
+        color: #fff;
+        font-weight: 600;
+      }
+      .policy .loc {
+        font-size: 11.5px;
+        color: var(--mute);
+        margin-top: 5px;
+      }
+
+      .controls {
+        position: fixed;
+        top: 16px;
+        right: 22px;
+        z-index: 11;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .btn {
+        background: var(--deep);
+        border: 1px solid var(--line);
+        color: var(--ice);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: border-color 0.15s;
+      }
+      .btn:hover {
+        border-color: var(--teal);
+      }
+      .btn.active {
+        border-color: var(--teal);
+        color: var(--teal);
+      }
+
+      #keyPanel {
+        position: fixed;
+        top: 56px;
+        right: 22px;
+        z-index: 12;
+        background: var(--deep);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        width: 300px;
+        display: none;
+      }
+      #keyPanel.show {
+        display: block;
+      }
+      #keyPanel h3 {
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      #keyPanel p {
+        font-size: 11.5px;
+        color: var(--mute);
+        line-height: 1.45;
+        margin-bottom: 10px;
+      }
+      #keyPanel input {
+        width: 100%;
+        background: var(--abyss);
+        border: 1px solid var(--line);
+        color: var(--ice);
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+      #keyPanel .save {
+        width: 100%;
+        background: var(--teal-d);
+        border: none;
+        color: #fff;
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      #keyPanel .note {
+        font-size: 10.5px;
+        color: var(--coral);
+        margin-top: 8px;
+        line-height: 1.4;
+      }
+
+      /* loader / error overlay */
+      #overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--abyss);
+        transition: opacity 0.5s;
+      }
+      #overlay.gone {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .load {
+        text-align: center;
+        max-width: 520px;
+        padding: 24px;
+      }
+      .load .spin {
+        width: 44px;
+        height: 44px;
+        border: 3px solid var(--line);
+        border-top-color: var(--teal);
+        border-radius: 50%;
+        margin: 0 auto 18px;
+        animation: sp 1s linear infinite;
+      }
+      @keyframes sp {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .load h2 {
+        font-size: 18px;
+        margin-bottom: 10px;
+      }
+      .load p {
+        font-size: 13px;
+        color: var(--mute);
+        line-height: 1.6;
+      }
+      .load code {
+        background: var(--deep);
+        padding: 2px 7px;
+        border-radius: 6px;
+        color: var(--gold);
+        font-size: 12px;
+      }
+      .load.err .spin {
+        display: none;
+      }
+      .load.err h2 {
+        color: var(--coral);
+      }
+
+      .credit {
+        position: fixed;
+        left: 14px;
+        bottom: 8px;
+        z-index: 10;
+        font-size: 10.5px;
+        color: var(--mute);
+        opacity: 0.7;
+      }
+      .hint {
+        position: fixed;
+        left: 50%;
+        top: 52%;
+        transform: translateX(-50%);
+        z-index: 8;
+        font-size: 13px;
+        color: var(--mute);
+        pointer-events: none;
+        text-align: center;
+        transition: opacity 0.5s;
+      }
+      .hint.hide {
+        opacity: 0;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+
+    <div class="top">
+      <svg class="fin" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M3 18c4 0 6-1 8-4 2-4 3-9 4-11 1 3 2 8 5 10 2 1.5 1 5-2 5H3z"
+          fill="#33d6c0"
+        />
+        <path
+          d="M3 20c3-.5 6-.5 9 0 3 .5 6 .5 9 0"
+          stroke="#33d6c0"
+          stroke-width="1.4"
+          fill="none"
+        />
+      </svg>
+      <div class="titles">
+        <span class="eyebrow">Team 56 · Project Platypus</span>
+        <h1>The Shark Speaks</h1>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn active" id="muteBtn">🔊 Voice on</button>
+      <button class="btn" id="keyBtn">✦ AI voice</button>
+    </div>
+
+    <div id="keyPanel">
+      <h3>Realistic AI voice (optional)</h3>
+      <p>
+        Paste an ElevenLabs API key to upgrade the voice. Needs internet. Leave
+        empty for the offline browser voice.
+      </p>
+      <input
+        type="password"
+        id="apiKey"
+        placeholder="ElevenLabs API key (optional)"
+      />
+      <input type="text" id="voiceId" placeholder="Voice ID (optional)" />
+      <button class="save" id="saveKey">Use this voice</button>
+      <div class="note">
+        ⚠ Only paste a key on your own machine. Don't share this file with a key
+        saved in it.
+      </div>
+    </div>
+
+    <div id="bubble">
+      <div class="say" id="say"></div>
+      <div class="chips" id="chips"></div>
+      <div class="conf" id="conf">
+        <span class="dot"></span><span id="confText"></span>
+      </div>
+    </div>
+
+    <div class="hint" id="hint">
+      Drag to rotate · pick a policy below to hear the shark argue
+    </div>
+
+    <div class="dock">
+      <div class="prompt">Ask the shark: <b>should this policy stand?</b></div>
+      <div class="cards" id="cards"></div>
+    </div>
+
+    <div class="credit" id="credit">"Great White Shark" by Mehrus, CC BY)</div>
+
+    <div id="overlay">
+      <div class="load" id="loadBox">
+        <div class="spin"></div>
+        <h2>Loading the shark…</h2>
+        <p>Looking for <code>shark.glb</code> in this folder.</p>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script>
+      /* ===== POLICY DATA — same as the geometry demo; edit freely ===== */
+      const POLICIES = [
+        {
+          id: "qld",
+          cls: "lethal",
+          tag: "Lethal · Queensland",
+          q: "Should Queensland keep lethal drum lines?",
+          loc: "Shark Control Program",
+          say: "No — and I can show why. Queensland still uses lethal drum lines that catch my kind, a species your own government lists as Vulnerable. A court has already forced catch-alert conditions in the Marine Park. Switch to non-lethal, tagged release everywhere.",
+          chips: [
+            ["IUCN 2022: Vulnerable", "warn"],
+            ["EPBC Act: protected", ""],
+            ["HSI v QLD 2019", ""]
+          ],
+          conf: "high"
+        },
+        {
+          id: "nsw",
+          cls: "smart",
+          tag: "Non-lethal · NSW",
+          q: "Are NSW SMART drumlines acceptable?",
+          loc: "Shark Management Program 2025/26",
+          say: "Better — but watch the edges. NSW uses SMART drumlines with tag-and-release within thirty minutes, three hundred and five of them this season. That protects most of us. My caution: species prone to post-capture stress can still die, so keep response times tight and report the bycatch.",
+          chips: [
+            ["NSW SharkSmart 2025/26", ""],
+            ["305 SMART drumlines", ""],
+            ["Tag & release", ""]
+          ],
+          conf: "med"
+        },
+        {
+          id: "wa",
+          cls: "ended",
+          tag: "Abandoned · WA",
+          q: "Was WA right to abandon its cull?",
+          loc: "Capes region trial",
+          say: "Yes. Western Australia abandoned lethal culling in 2014, and its later trial caught only two white sharks in twenty-seven months — both swam straight back offshore after release. The evidence said the cull gave no demonstrable safety value. Trust that evidence.",
+          chips: [
+            ["EPA review 2014", ""],
+            ["Capes trial: 2 white sharks", ""],
+            ["No demonstrable value", ""]
+          ],
+          conf: "high"
+        },
+        {
+          id: "nets",
+          cls: "lethal",
+          tag: "Lethal · NSW nets",
+          q: "Should NSW keep its shark nets?",
+          loc: "Shark Meshing Program",
+          say: "No. NSW nets are the bluntest tool you have. Last summer they caught two hundred and thirty-three animals — only about one in ten were target sharks; the rest were turtles, dolphins and endangered grey nurse sharks. Your own scientific committee found no evidence they reduce fatalities, and the law itself names netting a key threatening process. Phase them out.",
+          chips: [
+            ["TSSC 2025: no benefit", "warn"],
+            ["233 caught, ~11% target", ""],
+            ["'Key threatening process'", "warn"]
+          ],
+          conf: "high"
+        },
+        {
+          id: "qplan",
+          cls: "smart",
+          tag: "Reform · Queensland",
+          q: "Is the QLD 2025–2029 plan a step forward?",
+          loc: "Shark Management Plan",
+          say: "Yes — this is the direction I want. Queensland's new plan puts most of its eighty-eight-million-dollar budget into non-lethal measures: a four-year drone trial that spotted as many sharks as the old gear, plus rescue teams and deterrent research. Keep going, and retire the lethal drum lines that remain.",
+          chips: [
+            ["QLD Plan 2025–29", ""],
+            ["$88M, mostly non-lethal", ""],
+            ["Drone trial validated", ""]
+          ],
+          conf: "med"
+        },
+        {
+          id: "sa",
+          cls: "lethal",
+          tag: "Lethal · South Africa",
+          q: "Should KZN keep its nets and drum lines?",
+          loc: "KwaZulu-Natal, since 1952",
+          say: "No — and this is personal. In May 2025 a juvenile of my kind, a protected white shark, was killed on a KwaZulu-Natal drum line. That gear kills over four hundred non-target animals a year inside marine protected areas meant to shield us. Trial the non-lethal alternatives at five beaches, then phase the lethal gear out.",
+          chips: [
+            ["Juvenile white shark killed 2025", "warn"],
+            ["400+ bycatch/yr", "warn"],
+            ["Inside protected areas", ""]
+          ],
+          conf: "high"
+        },
+        {
+          id: "barrier",
+          cls: "ended",
+          tag: "Non-lethal · Barrier",
+          q: "Do eco-barriers actually work for me?",
+          loc: "SharkSafe Barrier trials",
+          say: "Yes, and I'd choose this. The SharkSafe Barrier mimics a kelp forest with embedded magnets. In trials none of the eighty-four white sharks and forty-one bull sharks crossed it, even baited with chum — while seals and dolphins pass through freely. It protects people without killing anything. Fund it.",
+          chips: [
+            ["0 of 84 white sharks crossed", ""],
+            ["Peer-reviewed", ""],
+            ["No bycatch", ""]
+          ],
+          conf: "med"
+        }
+      ];
+
+      /* ===== VOICE ===== */
+      let voiceOn = true,
+        elevenKey = "",
+        elevenVoice = "";
+      const synth = window.speechSynthesis;
+      function speak(text) {
+        if (!voiceOn) return;
+        try {
+          synth.cancel();
+        } catch (e) {}
+        if (elevenKey) {
+          speakEleven(text);
+          return;
+        }
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.98;
+        u.pitch = 0.9;
+        const vs = synth.getVoices();
+        const pick =
+          vs.find((v) => /en-GB|en-AU/.test(v.lang)) ||
+          vs.find((v) => /en/.test(v.lang));
+        if (pick) u.voice = pick;
+        synth.speak(u);
+      }
+      async function speakEleven(text) {
+        const vid = elevenVoice || "21m00Tcm4TlvDq8ikWAM";
+        try {
+          const res = await fetch(
+            `https://api.elevenlabs.io/v1/text-to-speech/${vid}`,
+            {
+              method: "POST",
+              headers: {
+                "xi-api-key": elevenKey,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                text,
+                model_id: "eleven_turbo_v2",
+                voice_settings: { stability: 0.4, similarity_boost: 0.7 }
+              })
+            }
+          );
+          if (!res.ok) throw new Error("TTS " + res.status);
+          const buf = await res.arrayBuffer();
+          new Audio(
+            URL.createObjectURL(new Blob([buf], { type: "audio/mpeg" }))
+          ).play();
+        } catch (err) {
+          console.warn("ElevenLabs failed:", err);
+          const u = new SpeechSynthesisUtterance(text);
+          u.rate = 0.98;
+          u.pitch = 0.9;
+          synth.speak(u);
+        }
+      }
+
+      /* ===== THREE.JS + GLTF ===== */
+      let scene, camera, renderer, clock, mixer, model;
+      let dragging = false,
+        lastX = 0,
+        lastY = 0,
+        yaw = 0,
+        pitch = 0,
+        targetYaw = 0,
+        baseYaw = 0;
+
+      function initScene() {
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x03181f, 0.028);
+        camera = new THREE.PerspectiveCamera(
+          50,
+          innerWidth / innerHeight,
+          0.1,
+          200
+        );
+        camera.position.set(0, 0.5, 9);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        document.getElementById("stage").appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0x2a4a52, 0.95));
+        const key = new THREE.DirectionalLight(0xdff4ff, 1.3);
+        key.position.set(2, 8, 4);
+        scene.add(key);
+        const rim = new THREE.DirectionalLight(0x1fb0a0, 0.8);
+        rim.position.set(-5, -1, -3);
+        scene.add(rim);
+        // sunlight filtering down from the surface
+        const sun = new THREE.SpotLight(0xdaf3ff, 1.2, 80, 0.6, 0.7);
+        sun.position.set(0, 16, 4);
+        scene.add(sun);
+
+        buildOcean();
+        addMotes();
+        clock = new THREE.Clock();
+        addInput();
+        loadModel();
+        animate();
+      }
+
+      function loadModel() {
+        const loader = new THREE.GLTFLoader();
+        loader.load(
+          "shark.glb",
+          (gltf) => {
+            model = gltf.scene;
+            // auto-center & scale to a consistent size
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z) || 1;
+            const s = 5.5 / maxDim;
+            model.scale.setScalar(s);
+            model.position.sub(center.multiplyScalar(s));
+            scene.add(model);
+            // play first animation (swim) if present
+            if (gltf.animations && gltf.animations.length) {
+              mixer = new THREE.AnimationMixer(model);
+              mixer.clipAction(gltf.animations[0]).play();
+            }
+            document.getElementById("overlay").classList.add("gone");
+          },
+          undefined,
+          (err) => {
+            console.error(err);
+            const box = document.getElementById("loadBox");
+            box.classList.add("err");
+            box.innerHTML = `<div class="spin"></div>
+        <h2>Couldn't find the model</h2>
+        <p>Put a file named <code>shark.glb</code> in the same folder as this page, then reload.<br><br>
+        Free model: search <b>"Great White Shark" by Mehrus</b> on Sketchfab → Download → glTF (.glb) → rename to <code>shark.glb</code>.<br><br>
+        <b>Note:</b> browsers block local file loading over <code>file://</code>. Run a tiny local server instead:<br>
+        <code>python -m http.server</code> in this folder, then open <code>http://localhost:8000</code>.</p>`;
+          }
+        );
+      }
+
+      /* Underwater backdrop — god rays from the surface, a caustic-lit seafloor,
+   and rising bubbles. Kept behind and dimmer than the shark so it stays the focus.
+   Animation (drifting rays, rising bubbles, scrolling caustics) lives in animate(). */
+      let lightRays = [],
+        bubbles = [],
+        caustic;
+      function buildOcean() {
+        // ---- GOD RAYS: translucent cones angling down from the surface ----
+        const rayMat = () =>
+          new THREE.MeshBasicMaterial({
+            color: 0xbfe6ff,
+            transparent: true,
+            opacity: 0.05,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+          });
+        for (let i = 0; i < 7; i++) {
+          const h = 26,
+            r = 1.4 + Math.random() * 1.6;
+          const cone = new THREE.Mesh(
+            new THREE.ConeGeometry(r, h, 12, 1, true),
+            rayMat()
+          );
+          cone.position.set(
+            (Math.random() - 0.5) * 24,
+            8,
+            -6 - Math.random() * 8
+          );
+          cone.rotation.z = (Math.random() - 0.5) * 0.5; // slight lean
+          cone.rotation.x = 0.1;
+          cone.userData.phase = Math.random() * Math.PI * 2;
+          cone.userData.baseOp = 0.03 + Math.random() * 0.05;
+          scene.add(cone);
+          lightRays.push(cone);
+        }
+
+        // ---- CAUSTIC SEAFLOOR: a large plane far below with a rippling texture ----
+        caustic = makeCausticTexture();
+        const floor = new THREE.Mesh(
+          new THREE.PlaneGeometry(120, 120),
+          new THREE.MeshBasicMaterial({
+            map: caustic.texture,
+            transparent: true,
+            opacity: 0.5,
+            color: 0x9fd6cf
+          })
+        );
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(0, -9, -8);
+        scene.add(floor);
+
+        // a dim distance-fade back wall of deep water (gradient via fog already, plus a tint plane)
+        const deepWall = new THREE.Mesh(
+          new THREE.PlaneGeometry(120, 60),
+          new THREE.MeshBasicMaterial({
+            color: 0x08313a,
+            transparent: true,
+            opacity: 0.35
+          })
+        );
+        deepWall.position.set(0, 0, -26);
+        scene.add(deepWall);
+
+        // ---- RISING BUBBLES ----
+        const bubbleMat = new THREE.MeshBasicMaterial({
+          color: 0xd6f2ff,
+          transparent: true,
+          opacity: 0.35,
+          depthWrite: false
+        });
+        for (let i = 0; i < 60; i++) {
+          const size = 0.03 + Math.random() * 0.12;
+          const b = new THREE.Mesh(
+            new THREE.SphereGeometry(size, 8, 8),
+            bubbleMat.clone()
+          );
+          b.position.set(
+            (Math.random() - 0.5) * 26,
+            -9 + Math.random() * 18,
+            -2 - Math.random() * 12
+          );
+          b.userData.speed = 0.4 + Math.random() * 0.9;
+          b.userData.sway = Math.random() * Math.PI * 2;
+          b.userData.swayAmp = 0.3 + Math.random() * 0.5;
+          scene.add(b);
+          bubbles.push(b);
+        }
+      }
+
+      // procedural caustic texture drawn to a canvas, animated by scrolling offset
+      function makeCausticTexture() {
+        const size = 256;
+        const cvs = document.createElement("canvas");
+        cvs.width = cvs.height = size;
+        const ctx = cvs.getContext("2d");
+        function draw(t) {
+          ctx.fillStyle = "#04222a";
+          ctx.fillRect(0, 0, size, size);
+          ctx.globalCompositeOperation = "lighter";
+          for (let i = 0; i < 26; i++) {
+            const x = (Math.sin(t * 0.6 + i * 1.7) * 0.5 + 0.5) * size;
+            const y = (Math.cos(t * 0.5 + i * 2.3) * 0.5 + 0.5) * size;
+            const r = 18 + Math.sin(t + i) * 10;
+            const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+            g.addColorStop(0, "rgba(150,230,220,0.5)");
+            g.addColorStop(1, "rgba(150,230,220,0)");
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalCompositeOperation = "source-over";
+        }
+        draw(0);
+        const texture = new THREE.CanvasTexture(cvs);
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        return { texture, ctx, cvs, draw };
+      }
+
+      function addMotes() {
+        const geo = new THREE.BufferGeometry();
+        const n = 220,
+          pos = new Float32Array(n * 3);
+        for (let i = 0; i < n; i++) {
+          pos[i * 3] = (Math.random() - 0.5) * 24;
+          pos[i * 3 + 1] = (Math.random() - 0.5) * 14;
+          pos[i * 3 + 2] = (Math.random() - 0.5) * 14 - 3;
+        }
+        geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        scene.add(
+          new THREE.Points(
+            geo,
+            new THREE.PointsMaterial({
+              color: 0x8fd8cf,
+              size: 0.04,
+              transparent: true,
+              opacity: 0.4
+            })
+          )
+        );
+      }
+
+      function addInput() {
+        const el = renderer.domElement;
+        const down = (x, y) => {
+          dragging = true;
+          lastX = x;
+          lastY = y;
+          document.getElementById("hint").classList.add("hide");
+        };
+        const move = (x, y) => {
+          if (!dragging) return;
+          targetYaw += (x - lastX) * 0.008;
+          pitch += (y - lastY) * 0.005;
+          pitch = Math.max(-0.5, Math.min(0.5, pitch));
+          lastX = x;
+          lastY = y;
+        };
+        const up = () => (dragging = false);
+        el.addEventListener("mousedown", (e) => down(e.clientX, e.clientY));
+        window.addEventListener("mousemove", (e) => move(e.clientX, e.clientY));
+        window.addEventListener("mouseup", up);
+        el.addEventListener(
+          "touchstart",
+          (e) => {
+            const t = e.touches[0];
+            down(t.clientX, t.clientY);
+          },
+          { passive: true }
+        );
+        window.addEventListener(
+          "touchmove",
+          (e) => {
+            const t = e.touches[0];
+            move(t.clientX, t.clientY);
+          },
+          { passive: true }
+        );
+        window.addEventListener("touchend", up);
+        window.addEventListener("resize", () => {
+          camera.aspect = innerWidth / innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(innerWidth, innerHeight);
+        });
+      }
+
+      let excited = 0;
+      function animate() {
+        requestAnimationFrame(animate);
+        const dt = clock.getDelta(),
+          t = clock.getElapsedTime();
+        if (mixer) mixer.update(dt * (1 + excited)); // swim faster when answering
+        yaw += (targetYaw - yaw) * 0.08;
+        if (model) {
+          model.rotation.y = baseYaw + yaw + Math.sin(t * 0.4) * 0.05;
+          model.rotation.x = pitch + Math.sin(t * 0.6) * 0.02;
+          model.position.y += Math.sin(t * 0.8) * 0.002;
+        }
+        excited *= 0.97;
+        // ---- underwater animation ----
+        // shimmering light rays: gently drift and pulse opacity
+        for (const r of lightRays) {
+          r.material.opacity =
+            r.userData.baseOp *
+            (0.6 + 0.4 * Math.sin(t * 0.6 + r.userData.phase));
+          r.rotation.z += Math.sin(t * 0.2 + r.userData.phase) * 0.0006;
+        }
+        // rising bubbles: float up, sway sideways, reset at the surface
+        for (const b of bubbles) {
+          b.position.y += b.userData.speed * dt;
+          b.position.x +=
+            Math.sin(t * 1.5 + b.userData.sway) * b.userData.swayAmp * dt;
+          if (b.position.y > 10) {
+            b.position.y = -9;
+            b.position.x = (Math.random() - 0.5) * 26;
+          }
+        }
+        // animated caustics on the seafloor
+        if (caustic) {
+          caustic.draw(t);
+          caustic.texture.needsUpdate = true;
+        }
+        renderer.render(scene, camera);
+      }
+      function reactAnswer() {
+        targetYaw = 0.4;
+        excited = 1.4;
+        setTimeout(() => {
+          targetYaw = 0.1;
+        }, 2200);
+      }
+
+      /* ===== UI ===== */
+      function renderCards() {
+        const wrap = document.getElementById("cards");
+        POLICIES.forEach((p) => {
+          const b = document.createElement("button");
+          b.className = `policy ${p.cls}`;
+          b.innerHTML = `<div class="tag">${p.tag}</div><div class="q">${p.q}</div><div class="loc">${p.loc}</div>`;
+          b.addEventListener("click", () => respond(p));
+          wrap.appendChild(b);
+        });
+      }
+      function respond(p) {
+        document.getElementById("say").textContent = p.say;
+        const chips = document.getElementById("chips");
+        chips.innerHTML = "";
+        p.chips.forEach(([label, cls]) => {
+          const c = document.createElement("span");
+          c.className = "chip " + (cls || "");
+          c.textContent = label;
+          chips.appendChild(c);
+        });
+        const conf = document.getElementById("conf");
+        conf.className = "conf " + p.conf;
+        document.getElementById("confText").textContent =
+          "Confidence: " +
+          { high: "High", med: "Medium", low: "Low" }[p.conf] +
+          " — flagged, not hidden";
+        document.getElementById("bubble").classList.add("show");
+        reactAnswer();
+        speak(p.say);
+      }
+      document.getElementById("muteBtn").addEventListener("click", function () {
+        voiceOn = !voiceOn;
+        this.classList.toggle("active", voiceOn);
+        this.textContent = voiceOn ? "🔊 Voice on" : "🔇 Voice off";
+        if (!voiceOn)
+          try {
+            synth.cancel();
+          } catch (e) {}
+      });
+      document
+        .getElementById("keyBtn")
+        .addEventListener("click", () =>
+          document.getElementById("keyPanel").classList.toggle("show")
+        );
+      document.getElementById("saveKey").addEventListener("click", () => {
+        elevenKey = document.getElementById("apiKey").value.trim();
+        elevenVoice = document.getElementById("voiceId").value.trim();
+        document.getElementById("keyPanel").classList.remove("show");
+        const kb = document.getElementById("keyBtn");
+        kb.classList.toggle("active", !!elevenKey);
+        kb.textContent = elevenKey ? "✦ AI voice on" : "✦ AI voice";
+      });
+      if (synth) synth.onvoiceschanged = () => {};
+
+      initScene();
+      renderCards();
+    </script>
+  </body>
+</html>

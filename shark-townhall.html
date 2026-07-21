@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Species Town Hall — Live</title>
+<style>
+  :root{
+    --call-bg:#0b1220;          /* deep call chrome */
+    --tile:#141d2e;
+    --tile-edge:#22304a;
+    --abyss-1:#03263b;          /* shark tile water */
+    --abyss-2:#02141f;
+    --foam:#e7eef6;
+    --muted:#8fa3bd;
+    --live:#e5484d;
+    --shark:#5fd0e6;            /* ambassador accent */
+    --chip:#12283a;
+    --chip-edge:#274b62;
+    --bar:#0a0f1a;
+    --ok:#3ecf8e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--call-bg);
+    color:var(--foam);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex;flex-direction:column;height:100vh;overflow:hidden;
+  }
+
+  /* ---- top bar ---- */
+  .topbar{
+    display:flex;align-items:center;gap:14px;
+    padding:12px 18px;background:var(--bar);
+    border-bottom:1px solid #1a2436;flex-shrink:0;
+  }
+  .meeting-name{font-weight:600;font-size:15px;letter-spacing:.2px}
+  .meeting-sub{color:var(--muted);font-size:12.5px}
+  .live-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    background:rgba(229,72,77,.14);color:var(--live);
+    font-size:12px;font-weight:600;padding:4px 9px;border-radius:20px;
+    margin-left:auto;
+  }
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--live);
+    animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* ---- grid ---- */
+  .stage{flex:1;display:grid;grid-template-columns:1fr 1fr;
+    grid-auto-rows:1fr;gap:12px;padding:14px;min-height:0}
+  .tile{
+    position:relative;background:var(--tile);border:1px solid var(--tile-edge);
+    border-radius:14px;overflow:hidden;display:flex;align-items:center;
+    justify-content:center;min-height:0;
+  }
+  .tile .name{
+    position:absolute;left:10px;bottom:10px;z-index:4;
+    background:rgba(4,9,18,.66);backdrop-filter:blur(4px);
+    padding:5px 10px;border-radius:8px;font-size:12.5px;font-weight:500;
+    display:flex;align-items:center;gap:7px;
+  }
+  .mini-mute{width:14px;height:14px;opacity:.85}
+  .tile.speaking{outline:3px solid var(--shark);outline-offset:-3px}
+  .tile.speaking-h{outline:3px solid var(--ok);outline-offset:-3px}
+
+  /* generic human/other tiles */
+  .avatar{
+    width:88px;height:88px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:34px;font-weight:600;color:#fff;
+  }
+  .tile .role{position:absolute;top:10px;left:10px;font-size:11px;
+    color:var(--muted);background:rgba(4,9,18,.5);padding:3px 8px;border-radius:6px}
+
+  /* ---- shark tile ---- */
+  .shark-tile{background:radial-gradient(120% 120% at 50% 0%,var(--abyss-1),var(--abyss-2))}
+  #ocean{position:absolute;inset:0;width:100%;height:100%}
+  .shark-emblem{
+    position:relative;z-index:2;text-align:center;padding:0 16px;
+  }
+  .shark-glyph{font-size:64px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.5));
+    transition:transform .25s ease}
+  .shark-tile.speaking .shark-glyph{animation:swim 2.2s ease-in-out infinite}
+  @keyframes swim{0%,100%{transform:translateX(-6px) rotate(-2deg)}
+    50%{transform:translateX(6px) rotate(2deg)}}
+  .shark-title{font-size:14px;font-weight:600;margin-top:8px;color:var(--shark)}
+  .shark-latin{font-size:11.5px;color:#9fd7e4;font-style:italic;opacity:.8}
+
+  /* speaking equalizer */
+  .eq{display:flex;gap:3px;height:16px;align-items:flex-end;justify-content:center;margin-top:10px;opacity:0;transition:opacity .3s}
+  .shark-tile.speaking .eq{opacity:1}
+  .eq span{width:3px;background:var(--shark);border-radius:2px;height:4px}
+  .shark-tile.speaking .eq span{animation:bounce .6s ease-in-out infinite}
+  .eq span:nth-child(2){animation-delay:.1s}.eq span:nth-child(3){animation-delay:.2s}
+  .eq span:nth-child(4){animation-delay:.15s}.eq span:nth-child(5){animation-delay:.05s}
+  @keyframes bounce{0%,100%{height:4px}50%{height:16px}}
+
+  /* ---- captions ---- */
+  .caption-wrap{position:absolute;left:0;right:0;bottom:78px;z-index:20;
+    display:flex;justify-content:center;pointer-events:none;padding:0 24px}
+  .caption{
+    max-width:820px;background:rgba(3,8,16,.82);backdrop-filter:blur(6px);
+    border:1px solid #223047;border-radius:12px;padding:12px 18px;
+    font-size:16px;line-height:1.5;opacity:0;transform:translateY(8px);
+    transition:opacity .25s,transform .25s;
+  }
+  .caption.show{opacity:1;transform:translateY(0)}
+  .caption .who{font-size:11.5px;font-weight:700;letter-spacing:.4px;
+    text-transform:uppercase;color:var(--shark);margin-bottom:4px}
+  .caption.human .who{color:var(--ok)}
+
+  /* evidence chips */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+  .chip{font-size:11px;background:var(--chip);border:1px solid var(--chip-edge);
+    color:#bfe6f1;padding:3px 9px;border-radius:20px}
+  .chip .conf{color:#9fd7e4;opacity:.85;margin-left:5px}
+
+  /* ---- control bar ---- */
+  .controls{
+    flex-shrink:0;background:var(--bar);border-top:1px solid #1a2436;
+    padding:12px 16px;display:flex;align-items:center;gap:10px;justify-content:center;
+    flex-wrap:wrap;
+  }
+  .ctl{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    background:transparent;border:none;color:var(--foam);cursor:pointer;
+    font-size:11px;padding:4px 10px;border-radius:10px;min-width:64px;
+  }
+  .ctl:hover{background:#131c2c}
+  .ctl .ic{width:44px;height:44px;border-radius:12px;background:#1b2740;
+    display:flex;align-items:center;justify-content:center;font-size:19px}
+  .ctl.primary .ic{background:var(--shark);color:#04222b}
+  .ctl.danger .ic{background:var(--live);color:#fff}
+  .ctl.listening .ic{background:var(--ok);color:#04231a;animation:pulse 1.2s infinite}
+  .ctl:disabled{opacity:.4;cursor:not-allowed}
+
+  /* policy input */
+  .policy-strip{display:flex;gap:8px;align-items:center;width:100%;max-width:900px;
+    margin:0 auto 4px auto}
+  .policy-strip input{
+    flex:1;background:#0e1626;border:1px solid #26344c;color:var(--foam);
+    border-radius:10px;padding:11px 14px;font-size:14px;font-family:inherit;
+  }
+  .policy-strip input:focus{outline:none;border-color:var(--shark)}
+  .policy-strip button{
+    background:var(--shark);color:#04222b;border:none;border-radius:10px;
+    padding:11px 18px;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap;
+  }
+  .policy-strip button:hover{filter:brightness(1.08)}
+
+  .hint{color:var(--muted);font-size:11.5px;text-align:center;width:100%;margin-top:2px}
+  .status{color:var(--ok);font-size:12px}
+
+  @media(max-width:640px){
+    .stage{grid-template-columns:1fr}
+    .caption{font-size:14px}
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div>
+      <div class="meeting-name">Virtual Species Town Hall — Coastal Policy Session</div>
+      <div class="meeting-sub">Project Platypus · Pluraversal Services</div>
+    </div>
+    <div class="live-badge"><span class="live-dot"></span>LIVE</div>
+  </div>
+
+  <div class="stage" id="stage">
+    <!-- Human chair -->
+    <div class="tile" id="tile-chair">
+      <div class="role">Chair (You)</div>
+      <div class="avatar" style="background:linear-gradient(135deg,#3ecf8e,#1f9d6b)">YOU</div>
+      <div class="name">
+        <svg class="mini-mute" viewBox="0 0 24 24" fill="none" stroke="#8fa3bd" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4"/></svg>
+        Policy Chair
+      </div>
+    </div>
+
+    <!-- Shark ambassador -->
+    <div class="tile shark-tile" id="tile-shark">
+      <canvas id="ocean"></canvas>
+      <div class="role">Species Ambassador</div>
+      <div class="shark-emblem">
+        <div class="shark-glyph">🦈</div>
+        <div class="shark-title">Great White Shark</div>
+        <div class="shark-latin">Carcharodon carcharias</div>
+        <div class="eq"><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="name">Great White · Ambassador</div>
+    </div>
+
+    <!-- Seal ambassador -->
+    <div class="tile" id="tile-seal">
+      <div class="role">Species Ambassador</div>
+      <div class="avatar" style="background:linear-gradient(135deg,#6b7a99,#3f4c66)">🦭</div>
+      <div class="name">Australian Sea Lion · Ambassador</div>
+    </div>
+
+    <!-- Human community rep -->
+    <div class="tile" id="tile-human">
+      <div class="role">Community Ambassador</div>
+      <div class="avatar" style="background:linear-gradient(135deg,#d9a441,#b5791f)">🏄</div>
+      <div class="name">Beach Users · Ambassador</div>
+    </div>
+  </div>
+
+  <div class="caption-wrap"><div class="caption" id="caption"></div></div>
+
+  <div class="controls">
+    <div class="policy-strip">
+      <input id="policyInput" placeholder="Table a policy — e.g. 'Install lethal drumlines along all popular beaches'">
+      <button id="tableBtn">Table policy</button>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;justify-content:center;width:100%">
+      <button class="ctl" id="micBtn" title="Speak your policy aloud">
+        <span class="ic">🎙️</span><span>Speak</span>
+      </button>
+      <button class="ctl primary" id="nextBtn" disabled>
+        <span class="ic">⏭️</span><span>Next speaker</span>
+      </button>
+      <button class="ctl" id="replayBtn" disabled>
+        <span class="ic">🔁</span><span>Replay</span>
+      </button>
+      <button class="ctl danger" id="stopBtn">
+        <span class="ic">⏹️</span><span>End round</span>
+      </button>
+    </div>
+    <div class="hint" id="hint">Type or speak a coastal-safety policy, then let each ambassador respond in turn. Best in Chrome.</div>
+  </div>
+
+<script>
+/* ============================================================
+   Species Town Hall — offline, rule-based multi-species engine
+   No server, no API. Speech in/out via browser Web Speech API.
+   ============================================================ */
+
+/* ---------- underwater canvas for shark tile ---------- */
+(function ocean(){
+  const c=document.getElementById('ocean'),x=c.getContext('2d');
+  let w,h,bubbles=[];
+  function size(){const r=c.getBoundingClientRect();w=c.width=r.width;h=c.height=r.height;}
+  function mk(){return{x:Math.random()*w,y:h+Math.random()*40,r:1+Math.random()*3,s:.3+Math.random()*.8,o:.2+Math.random()*.4}}
+  new ResizeObserver(size).observe(c);size();
+  for(let i=0;i<32;i++)bubbles.push(mk());
+  function loop(){
+    x.clearRect(0,0,w,h);
+    // god rays
+    const g=x.createLinearGradient(0,0,0,h);
+    g.addColorStop(0,'rgba(95,208,230,.10)');g.addColorStop(1,'rgba(2,20,31,0)');
+    x.fillStyle=g;x.fillRect(0,0,w,h);
+    x.fillStyle='rgba(180,235,245,.5)';
+    bubbles.forEach(b=>{
+      b.y-=b.s;b.x+=Math.sin(b.y*.03)*.3;
+      if(b.y< -10){Object.assign(b,mk());}
+      x.globalAlpha=b.o;x.beginPath();x.arc(b.x,b.y,b.r,0,7);x.fill();
+    });
+    x.globalAlpha=1;requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+/* ---------- speech synthesis ---------- */
+const synth=window.speechSynthesis;
+let voices=[];
+function loadVoices(){voices=synth.getVoices();}
+loadVoices();if(synth.onvoiceschanged!==undefined)synth.onvoiceschanged=loadVoices;
+function pickVoice(pref){
+  const en=voices.filter(v=>v.lang.startsWith('en'));
+  return en.find(v=>v.name.toLowerCase().includes(pref))||en[0]||voices[0];
+}
+
+/* ---------- ambassadors: self-interested rule-based advocates ---------- */
+/* Each returns a stance object given the policy text + what was said before. */
+const P={ // policy signal detection
+  lethal:/(drumline|mesh net|cull|kill|lethal|shark net|shoot|remove shark)/i,
+  nonlethal:/(smart drumline|tag|relocat|non.?lethal|drone|barrier|deterrent|surveillance|spotter|alert)/i,
+  closeBeach:/(close|ban swim|restrict access|no swim|closure)/i,
+  fishing:/(fishing|quota|catch|net fishing|bycatch|trawl)/i,
+  protect:/(protect|sanctuary|marine park|conservation|no.take)/i,
+};
+function detect(t){const o={};for(const k in P)o[k]=P[k].test(t);return o;}
+
+const AMBASSADORS=[
+  {
+    id:'shark',tile:'tile-shark',who:'Great White Shark',voice:'male',rate:.92,pitch:.8,
+    line(sig,ctx){
+      let s,chips;
+      if(sig.lethal){
+        s="Chair, I must object in the strongest terms. Lethal drumlines and mesh nets don't target problem individuals — they kill my kind indiscriminately, along with rays, turtles and dolphins. My population has already declined by 30 to 49 percent over three generations. With a generation length of 53 years, we recover slowly. Removing us destabilises the very ecosystem this coast depends on.";
+        chips=[['IUCN: 30–49% decline / 3 generations','high'],['Generation length 53 yrs','high'],['Non-selective bycatch','high']];
+      }else if(sig.nonlethal){
+        s="This I can work with, Chair. SMART drumlines that tag and release, drones, and spotter alerts protect swimmers without wiping out my population. I'd note the trial in Western Australia was ended because it proved ineffective in those specific conditions — so I ask that any rollout be matched to local conditions and independently reviewed.";
+        chips=[['SMART = tag & release','high'],['WA trial ended: ineffective locally','med'],['Condition-specific rollout','med']];
+      }else if(sig.closeBeach){
+        s="A temporary closure during peak feeding windows is something I can accept, Chair. It separates us without killing either side. I only ask it be driven by real sighting data, not fear — closures with no evidence erode public trust and rarely change my behaviour.";
+        chips=[['Spatial separation, no mortality','high'],['Sighting-data driven','med']];
+      }else if(sig.protect){
+        s="Chair, I welcome this. Protected zones let my population stabilise and keep the food web intact. As an apex predator I regulate the species beneath me — protect me, and you protect the whole coastal system.";
+        chips=[['Apex predator / trophic role','high'],['Population stabilisation','high']];
+      }else{
+        s="Chair, before I respond I'd ask what this policy means for indiscriminate mortality of my kind. My population is already in decline, so any measure that removes sharks non-selectively I will oppose. Measures that separate without killing, I can support.";
+        chips=[['Population in decline','high'],['Opposes non-selective removal','med']];
+      }
+      return{text:s,chips};
+    }
+  },
+  {
+    id:'seal',tile:'tile-seal',who:'Australian Sea Lion',voice:'female',rate:.98,pitch:1.05,
+    line(sig,ctx){
+      let s,chips;
+      if(sig.lethal){
+        s="Chair, I share the shark's concern but for my own reasons. Mesh nets drown my colony members too — we are endangered and every death matters to us. And fewer sharks does not simply mean safer seas; it shifts predation pressure in ways that ripple back onto my haul-out sites.";
+        chips=[['Sea lion: Endangered (IUCN)','high'],['Net entanglement drowning','high']];
+      }else if(sig.nonlethal){
+        s="Non-lethal deterrents suit me well, Chair. They keep swimmers safe without netting that entangles my colony. I only ask that drone and barrier zones don't cut across my breeding beaches during pupping season.";
+        chips=[['Avoids entanglement','high'],['Protect pupping beaches','med']];
+      }else if(sig.fishing){
+        s="Chair, this touches me directly. Fishing bycatch is a leading threat to my colony. If this policy tightens net rules I support it strongly — my numbers cannot absorb further losses.";
+        chips=[['Bycatch = leading threat','high'],['Population cannot absorb losses','high']];
+      }else{
+        s="Chair, I ask only that whatever is decided accounts for my colony's breeding sites and our vulnerability to entanglement. I am endangered, and easily overlooked in debates that focus on sharks and swimmers.";
+        chips=[['Endangered / often overlooked','med'],['Breeding-site protection','med']];
+      }
+      return{text:s,chips};
+    }
+  },
+  {
+    id:'human',tile:'tile-human',who:'Beach Users',voice:'male',rate:1.0,pitch:1.0,
+    line(sig,ctx){
+      let s,chips;
+      if(sig.lethal){
+        s="Chair, with respect to the ambassadors here — the people I represent want to feel safe in the water. But I'll be honest: they also don't want to see turtles and dolphins dead in nets on the morning news. If non-lethal measures can keep us safe, most of my community would take them. Safety and conscience aren't opposites here.";
+        chips=[['Community: safety priority','med'],['Low tolerance for bycatch imagery','med']];
+      }else if(sig.nonlethal){
+        s="This is what my community actually wants, Chair — to feel protected without the guilt. Drones and alerts give real-time reassurance. My only ask is that the system is reliable and visible, so people trust it enough to keep swimming.";
+        chips=[['Real-time reassurance','med'],['Public trust in system','med']];
+      }else if(sig.closeBeach){
+        s="Closures are a hard sell, Chair — beaches are livelihoods and recreation both. I can support short, evidence-based closures, but blanket bans will cost tourism and I'll be answering for it.";
+        chips=[['Tourism / livelihood impact','med'],['Prefers short, evidence-based closures','med']];
+      }else{
+        s="Chair, my community's bottom line is simple: keep people safe, keep the coast open, and don't make us the villains. Where those goals can be met without mass killing, we're on side.";
+        chips=[['Safety + open access','med'],['Reputational concern','low']];
+      }
+      return{text:s,chips};
+    }
+  }
+];
+
+/* ---------- turn engine ---------- */
+let queue=[],idx=0,lastPolicy='',lastResults=[];
+const caption=document.getElementById('caption');
+const nextBtn=document.getElementById('nextBtn');
+const replayBtn=document.getElementById('replayBtn');
+const hint=document.getElementById('hint');
+
+function clearSpeaking(){
+  document.querySelectorAll('.tile').forEach(t=>t.classList.remove('speaking','speaking-h'));
+}
+function showCaption(who,text,chips,human){
+  caption.classList.remove('show');
+  caption.className='caption'+(human?' human':'');
+  let chipHtml='';
+  if(chips&&chips.length){
+    chipHtml='<div class="chips">'+chips.map(c=>
+      `<span class="chip">${c[0]}<span class="conf">· ${c[1]} confidence</span></span>`).join('')+'</div>';
+  }
+  caption.innerHTML=`<div class="who">${who}</div>${text}${chipHtml}`;
+  requestAnimationFrame(()=>caption.classList.add('show'));
+}
+
+function speak(a,text,onEnd){
+  clearSpeaking();
+  const tile=document.getElementById(a.tile);
+  tile.classList.add(a.id==='human'?'speaking-h':'speaking');
+  if(!synth){onEnd&&onEnd();return;}
+  synth.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  const v=pickVoice(a.voice==='female'?'female':'male');
+  if(v)u.voice=v;
+  u.rate=a.rate;u.pitch=a.pitch;
+  u.onend=()=>{onEnd&&onEnd();};
+  synth.speak(u);
+}
+
+function runPolicy(text){
+  if(!text.trim())return;
+  lastPolicy=text;
+  const sig=detect(text);
+  lastResults=AMBASSADORS.map(a=>({a,...a.line(sig,{})}));
+  idx=0;
+  // chair states the policy first
+  showCaption('Policy Chair','“'+text+'” — ambassadors, your responses.',null,true);
+  const chair=document.getElementById('tile-chair');
+  clearSpeaking();chair.classList.add('speaking-h');
+  synth&&synth.cancel();
+  const u=new SpeechSynthesisUtterance('The chair tables the following policy. '+text+'. Ambassadors, your responses.');
+  const cv=pickVoice('female');if(cv)u.voice=cv;u.rate=1.0;
+  u.onend=()=>{nextBtn.disabled=false;hint.textContent='Press “Next speaker” to hear each ambassador respond in turn.';};
+  if(synth)synth.speak(u);else{nextBtn.disabled=false;}
+  replayBtn.disabled=true;
+}
+
+function nextSpeaker(){
+  if(idx>=lastResults.length){
+    showCaption('Policy Chair','That concludes this round. Conflicts between ambassadors are resolved at the system layer above them — not within any single representative.',null,true);
+    clearSpeaking();document.getElementById('tile-chair').classList.add('speaking-h');
+    nextBtn.disabled=true;replayBtn.disabled=false;
+    hint.textContent='Round complete. Table a new policy, or replay.';
+    return;
+  }
+  const {a,text,chips}=lastResults[idx];
+  showCaption(a.who,text,chips,a.id==='human');
+  nextBtn.disabled=true;
+  speak(a,text,()=>{nextBtn.disabled=false;});
+  idx++;
+}
+
+/* ---------- controls ---------- */
+document.getElementById('tableBtn').onclick=()=>{
+  const v=document.getElementById('policyInput').value;
+  if(v.trim())runPolicy(v);
+};
+document.getElementById('policyInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){const v=e.target.value;if(v.trim())runPolicy(v);}
+});
+nextBtn.onclick=nextSpeaker;
+replayBtn.onclick=()=>{if(lastPolicy)runPolicy(lastPolicy);};
+document.getElementById('stopBtn').onclick=()=>{
+  synth&&synth.cancel();clearSpeaking();caption.classList.remove('show');
+  nextBtn.disabled=true;replayBtn.disabled=lastPolicy?false:true;
+  hint.textContent='Round ended. Table a new policy to begin again.';
+};
+
+/* ---------- speech recognition (mic) ---------- */
+const micBtn=document.getElementById('micBtn');
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null,listening=false;
+if(SR){
+  rec=new SR();rec.lang='en-AU';rec.interimResults=true;rec.continuous=false;
+  rec.onresult=e=>{
+    let t='';for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
+    document.getElementById('policyInput').value=t;
+    if(e.results[e.results.length-1].isFinal){stopMic();runPolicy(t);}
+  };
+  rec.onerror=()=>{stopMic();hint.textContent='Mic unavailable — type your policy instead.';};
+  rec.onend=()=>{stopMic();};
+}else{
+  micBtn.disabled=true;micBtn.querySelector('span:last-child').textContent='No mic';
+}
+function startMic(){if(!rec)return;try{rec.start();listening=true;micBtn.classList.add('listening');
+  hint.textContent='Listening… state your policy aloud.';}catch(e){}}
+function stopMic(){listening=false;micBtn.classList.remove('listening');}
+micBtn.onclick=()=>{listening?rec.stop():startMic();};
+</script>
+</body>
+</html>

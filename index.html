@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zoom — Virtual Town Hall</title>
+<style>
+  :root{
+    --zoom-bg:#1a1a1a; --tile:#2b2b2b; --tile-top:#3c3c3c;
+    --bar:#111111; --text:#ffffff; --muted:#a8a8a8;
+    --speaking:#35c759; --danger:#e02d2d; --blue:#2d8cff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:'Segoe UI',system-ui,Roboto,sans-serif;
+       background:var(--zoom-bg);color:var(--text);
+       display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+  /* top strip */
+  .topbar{height:44px;background:#000;display:flex;align-items:center;
+          padding:0 16px;gap:12px;font-size:13px;color:var(--muted);flex:none}
+  .topbar .rec{color:var(--danger);display:flex;align-items:center;gap:6px}
+  .topbar .rec .dot{width:9px;height:9px;border-radius:50%;background:var(--danger)}
+  .topbar .title{margin:0 auto;color:#ddd;font-weight:500}
+  .topbar .secure{display:flex;align-items:center;gap:6px}
+  .tabs{display:flex;gap:6px}
+  .tab{background:transparent;border:1px solid #444;color:var(--muted);
+       padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px}
+  .tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+  /* meeting area */
+  .stage{flex:1;padding:12px;overflow:auto;display:flex;align-items:center;
+         justify-content:center}
+  .gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+           gap:10px;width:100%;max-width:1000px;height:100%;max-height:640px}
+  .tile{position:relative;background:var(--tile);border-radius:10px;
+        overflow:hidden;display:flex;align-items:center;justify-content:center;
+        border:3px solid transparent;transition:border-color .2s}
+  .tile.speaking{border-color:var(--speaking)}
+  /* the "video" — big circular avatar like a camera-off participant */
+  .portrait{width:120px;height:120px;border-radius:50%;
+            background:linear-gradient(160deg,#4a4a4a,#2a2a2a);
+            display:flex;align-items:center;justify-content:center;
+            font-size:56px;user-select:none}
+  .namebar{position:absolute;left:8px;bottom:8px;z-index:2;
+           background:rgba(0,0,0,.55);color:#fff;font-size:13px;
+           padding:3px 8px 3px 6px;border-radius:5px;
+           display:flex;align-items:center;gap:6px;max-width:90%}
+  .namebar .micicon{font-size:13px}
+  .namebar .micoff{color:var(--danger)}
+  .statustag{position:absolute;right:8px;top:8px;z-index:2;font-size:10px;
+             padding:2px 7px;border-radius:20px;background:rgba(0,0,0,.5);
+             color:var(--muted);border:1px solid #555}
+  .statustag.rich{color:var(--speaking);border-color:var(--speaking)}
+  .statustag.poor{color:#ff7a7a;border-color:#ff7a7a}
+  .caption{position:absolute;left:8px;right:8px;bottom:38px;z-index:2;
+           background:rgba(0,0,0,.6);color:#fff;font-size:12px;line-height:1.4;
+           padding:6px 8px;border-radius:6px;max-height:52%;overflow:auto;
+           display:none}
+  .caption.show{display:block}
+
+  /* active speaker mic icon */
+  .micicon.micoff{color:var(--danger)}
+  .micicon.active{color:var(--speaking);animation:micpulse 1s infinite}
+  @keyframes micpulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  /* meeting body = stage + optional side panel */
+  .meeting-body{flex:1;display:flex;min-height:0}
+  .meeting-body .stage{flex:1;min-height:0}
+  .sidepanel{width:300px;flex:none;background:#242424;border-left:1px solid #000;
+             display:flex;flex-direction:column;color:#eee}
+  .panel-head{display:flex;align-items:center;padding:12px 14px;
+              border-bottom:1px solid #333;font-weight:600;font-size:14px}
+  .panel-close{margin-left:auto;background:none;border:none;color:#aaa;
+               font-size:16px;cursor:pointer}
+  .panel-body{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .pcount{padding:12px 14px;color:var(--muted);font-size:12px;
+          border-bottom:1px solid #333}
+  .plist{list-style:none;margin:0;padding:6px 0;overflow:auto}
+  .plist li{display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:14px}
+  .plist li .ava{width:26px;height:26px;border-radius:50%;background:#3c3c3c;
+                 display:flex;align-items:center;justify-content:center;font-size:15px}
+  .plist li .pmic{margin-left:auto;font-size:13px}
+  .plist li .pmic.on{color:var(--speaking)}
+  .plist li .pmic.off{color:var(--danger)}
+  .chatlog{flex:1;overflow:auto;padding:12px 14px;font-size:13px;line-height:1.45}
+  .chatlog .msg{margin-bottom:10px}
+  .chatlog .who{color:var(--blue);font-weight:600;font-size:12px}
+  .chatinput{display:flex;flex-wrap:wrap;gap:6px;padding:10px;border-top:1px solid #333}
+  .chatinput select{background:#2b2b2b;border:1px solid #444;color:#fff;
+                    padding:8px 6px;border-radius:6px;font-size:12px;flex:1 0 100%}
+  .chatinput input{flex:1;min-width:0;background:#2b2b2b;border:1px solid #444;color:#fff;
+                   padding:8px 10px;border-radius:6px;font-size:13px}
+  .chatinput button{background:var(--blue);border:none;color:#fff;
+                    padding:8px 14px;border-radius:6px;cursor:pointer}
+  .ctrl.panelopen{background:#3a3a3a}
+
+  /* bottom control bar */
+  .controlbar{height:74px;background:var(--bar);flex:none;display:flex;
+              align-items:center;padding:0 16px;gap:6px}
+  .ctrl{display:flex;flex-direction:column;align-items:center;gap:3px;
+        background:none;border:none;color:#e8e8e8;font-size:11px;cursor:pointer;
+        padding:6px 12px;border-radius:8px;min-width:64px}
+  .ctrl:hover{background:#242424}
+  .ctrl .glyph{font-size:20px;line-height:1}
+  .ctrl.on .glyph{color:var(--speaking)}
+  .ctrl.off .glyph{color:var(--danger)}
+  .ctrl.leave{margin-left:auto;color:#ff5b5b}
+  .ctrl.end{background:var(--danger);color:#fff;border-radius:8px}
+  .ctrl.end:hover{background:#c02020}
+
+  /* when a real photo is loaded, fill the ENTIRE tile like a video feed */
+  .portrait.photo{position:absolute;inset:0;width:100%;height:100%;
+                  border-radius:0;background-size:cover;
+                  background-position:center;font-size:0}
+
+  /* policy input — docked as its own row UNDER the control bar */
+  .policybar{flex:none;background:#000;display:flex;gap:8px;
+             padding:10px 16px;border-top:1px solid #222}
+  .policybar input{flex:1;background:#2b2b2b;border:1px solid #444;
+       color:#fff;padding:11px 14px;border-radius:8px;font-size:14px}
+  .policybar button{background:var(--blue);border:none;color:#fff;
+       padding:11px 24px;border-radius:8px;cursor:pointer;font-size:14px}
+  .policybar button:disabled{opacity:.5;cursor:default}
+  .livestatus{flex:none;text-align:center;color:var(--muted);font-size:12px;
+              padding:4px;background:#000}
+
+  /* document tab */
+  .doc-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+  .doc-pane{background:#2b2b2b;border:1px solid #444;border-radius:14px;
+       padding:36px;max-width:640px;text-align:center}
+  .doc-pane h2{margin-top:0}
+  .drop{border:2px dashed #555;border-radius:12px;padding:44px;
+        color:var(--muted);cursor:pointer;margin-top:16px}
+  .drop.hover{border-color:var(--blue);color:#fff}
+  .docstatus{margin-top:16px;color:var(--muted);font-size:14px;min-height:20px}
+  .hidden{display:none !important}
+  .pane-live{flex:1;display:flex;flex-direction:column;position:relative;min-height:0}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="rec"><span class="dot"></span>Recording</span>
+  <span class="secure">🔒 <span>Virtual Town Hall · Project Platypus</span></span>
+  <span class="title" id="clock"></span>
+  <div class="tabs">
+    <button class="tab active" id="tab-live" onclick="showTab('live')">Meeting</button>
+    <button class="tab" id="tab-doc" onclick="showTab('doc')">Document analysis</button>
+  </div>
+</div>
+
+<!-- ============ MEETING ============ -->
+<div id="pane-live" class="pane-live">
+  <div class="meeting-body">
+    <div class="stage">
+      <div class="gallery">
+
+      <div class="tile" data-slug="great_white_shark">
+        <div class="portrait" id="shark-portrait">🦈</div>
+        <div class="statustag rich">data-rich</div>
+        <div class="caption"></div>
+        <div class="namebar"><span class="micicon micoff" data-mic>🔇</span>Great White Shark</div>
+      </div>
+
+      <div class="tile" data-slug="australian_sea_lion">
+        <div class="portrait" id="sealion-portrait">🦭</div>
+        <div class="statustag rich">data-rich</div>
+        <div class="caption"></div>
+        <div class="namebar"><span class="micicon micoff" data-mic>🔇</span>Australian Sea Lion</div>
+      </div>
+
+      <div class="tile" data-slug="beach_users">
+        <div class="portrait" id="beach-portrait">🏄</div>
+        <div class="statustag poor">data-poor</div>
+        <div class="caption"></div>
+        <div class="namebar"><span class="micicon micoff" data-mic>🔇</span>Beach Users</div>
+      </div>
+
+      <div class="tile" data-slug="you">
+        <div class="portrait" id="chair-portrait">🧑</div>
+        <div class="caption"></div>
+        <div class="namebar"><span class="micicon">🎤</span>You (chair)</div>
+      </div>
+
+      </div>
+    </div>
+
+    <!-- side panel: Participants / Chat -->
+    <aside class="sidepanel hidden" id="sidepanel">
+      <div class="panel-head">
+        <span id="panel-title">Participants</span>
+        <button class="panel-close" onclick="closePanel()">✕</button>
+      </div>
+
+      <div id="panel-participants" class="panel-body">
+        <div class="pcount" id="pcount">4 in the meeting</div>
+        <ul class="plist" id="plist"></ul>
+      </div>
+
+      <div id="panel-chat" class="panel-body hidden">
+        <div class="chatlog" id="chatlog"></div>
+        <div class="chatinput">
+          <select id="chatas">
+            <option value="You (chair)">You (chair)</option>
+            <option value="Great White Shark">Great White Shark</option>
+            <option value="Australian Sea Lion">Australian Sea Lion</option>
+            <option value="Beach Users">Beach Users</option>
+          </select>
+          <input type="text" id="chatbox" placeholder="Type a message…"
+                 onkeydown="if(event.key==='Enter')sendChat()">
+          <button onclick="sendChat()">Send</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="livestatus" id="live-status"></div>
+
+  <div class="controlbar">
+    <button class="ctrl on" id="mic" onclick="toggleMic()">
+      <span class="glyph">🎤</span>Unmute</button>
+    <button class="ctrl off"><span class="glyph">📷</span>Start Video</button>
+    <button class="ctrl" id="btn-participants" onclick="togglePanel('participants')"><span class="glyph">👥</span>Participants</button>
+    <button class="ctrl on" id="voice" onclick="toggleVoice()">
+      <span class="glyph">🔊</span>Voices</button>
+    <button class="ctrl" id="btn-chat" onclick="togglePanel('chat')"><span class="glyph">💬</span>Chat</button>
+    <button class="ctrl"><span class="glyph">⬆️</span>Share</button>
+    <button class="ctrl leave"><span class="glyph">🚪</span>Leave</button>
+  </div>
+
+  <div class="policybar">
+    <input type="text" id="policy" placeholder="Put a policy to the floor…  e.g. Install SMART drumlines at all metro beaches"
+           onkeydown="if(event.key==='Enter')submitPolicy()">
+    <button id="send" onclick="submitPolicy()">Put to floor</button>
+  </div>
+</div>
+
+<!-- ============ DOCUMENT ============ -->
+<div id="pane-doc" class="doc-wrap hidden">
+  <div class="doc-pane">
+    <h2>Upload a policy document</h2>
+    <p style="color:var(--muted)">Feed in a policy (.txt, .docx or .pdf). All three
+      representatives analyse it and you get back a Word report with support points,
+      opposition points and proposed improvements — each carrying a confidence flag.</p>
+    <div class="drop" id="drop" onclick="fileInput.click()">Click or drop a file here</div>
+    <input type="file" id="fileInput" class="hidden" accept=".txt,.docx,.pdf">
+    <div class="docstatus" id="doc-status"></div>
+  </div>
+</div>
+
+<script>
+// clock in the top bar
+function tick(){ const d=new Date();
+  document.getElementById('clock').textContent =
+    d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+tick(); setInterval(tick,10000);
+
+// Show real photos in each tile if the image files sit next to this file.
+// Falls back silently to the emoji if a file is missing, so nothing breaks.
+[
+  ["shark-portrait",   "shark.jpg"],
+  ["sealion-portrait", "sea_lion.jpg"],
+  ["beach-portrait",   "beach_person.jpg"],
+  ["chair-portrait",   "policy_chair.jpg"],
+].forEach(([id,file])=>{
+  const img=new Image();
+  img.onload=function(){
+    const p=document.getElementById(id);
+    if(!p) return;
+    p.classList.add('photo');
+    p.style.backgroundImage="url('"+file+"')";
+    p.textContent="";
+  };
+  img.src=file;
+});
+
+// ---------- Participants roster ----------
+const PARTICIPANTS=[
+  {slug:'great_white_shark',   name:'Great White Shark',   ava:'🦈'},
+  {slug:'australian_sea_lion', name:'Australian Sea Lion', ava:'🦭'},
+  {slug:'beach_users',         name:'Beach Users',         ava:'🏄'},
+  {slug:'you',                 name:'You (chair)',         ava:'🧑', host:true},
+];
+function buildParticipants(){
+  const ul=document.getElementById('plist');
+  ul.innerHTML='';
+  PARTICIPANTS.forEach(p=>{
+    const li=document.createElement('li');
+    li.dataset.slug=p.slug;
+    li.innerHTML=`<span class="ava">${p.ava}</span>`+
+      `<span>${p.name}${p.host?' <span style="color:#888">(Host)</span>':''}</span>`+
+      `<span class="pmic ${p.slug==='you'?'on':'off'}">${p.slug==='you'?'🎤':'🔇'}</span>`;
+    ul.appendChild(li);
+  });
+  document.getElementById('pcount').textContent=
+    PARTICIPANTS.length+' in the meeting';
+}
+buildParticipants();
+
+// ---------- Side panel (participants / chat) ----------
+let openPanel=null;
+function togglePanel(which){
+  if(openPanel===which){ closePanel(); return; }
+  openPanel=which;
+  document.getElementById('sidepanel').classList.remove('hidden');
+  const isP=which==='participants';
+  document.getElementById('panel-title').textContent=isP?'Participants':'Chat';
+  document.getElementById('panel-participants').classList.toggle('hidden',!isP);
+  document.getElementById('panel-chat').classList.toggle('hidden',isP);
+  document.getElementById('btn-participants').classList.toggle('panelopen',isP);
+  document.getElementById('btn-chat').classList.toggle('panelopen',!isP);
+}
+function closePanel(){
+  openPanel=null;
+  document.getElementById('sidepanel').classList.add('hidden');
+  document.getElementById('btn-participants').classList.remove('panelopen');
+  document.getElementById('btn-chat').classList.remove('panelopen');
+}
+
+// ---------- Chat ----------
+function addChat(who,text){
+  const log=document.getElementById('chatlog');
+  const d=document.createElement('div');
+  d.className='msg';
+  d.innerHTML=`<div class="who">${who}</div><div>${text}</div>`;
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+}
+function sendChat(){
+  const box=document.getElementById('chatbox');
+  const as=document.getElementById('chatas').value;
+  const t=box.value.trim(); if(!t) return;
+  addChat(as,t); box.value='';
+}
+
+function showTab(which){
+  document.getElementById('pane-live').classList.toggle('hidden', which!=='live');
+  document.getElementById('pane-doc').classList.toggle('hidden', which!=='doc');
+  document.getElementById('tab-live').classList.toggle('active', which==='live');
+  document.getElementById('tab-doc').classList.toggle('active', which==='doc');
+}
+
+// ---------- Voice output ----------
+let voicesOn=true, availableVoices=[];
+function loadVoices(){ availableVoices=window.speechSynthesis.getVoices(); }
+loadVoices();
+if(window.speechSynthesis) window.speechSynthesis.onvoiceschanged=loadVoices;
+
+const VOICE_STYLE={
+  great_white_shark:{pitch:0.7,rate:0.95,match:['male','daniel','google uk english male']},
+  australian_sea_lion:{pitch:1.3,rate:1.0,match:['female','karen','google uk english female']},
+  beach_users:{pitch:1.0,rate:1.05,match:['google us english','samantha','male']},
+};
+function pickVoice(matchers){
+  for(const m of matchers){
+    const v=availableVoices.find(v=>(v.name+' '+v.voiceURI).toLowerCase().includes(m));
+    if(v) return v;
+  }
+  return availableVoices.find(v=>v.lang&&v.lang.startsWith('en'))||null;
+}
+function toggleVoice(){
+  voicesOn=!voicesOn;
+  document.getElementById('voice').classList.toggle('on',voicesOn);
+  document.getElementById('voice').classList.toggle('off',!voicesOn);
+  if(!voicesOn) window.speechSynthesis.cancel();
+}
+
+function setSpeaking(slug,on){
+  const tile=document.querySelector(`[data-slug="${slug}"]`);
+  if(tile) tile.classList.toggle('speaking',on);
+  // flip the tile's mic icon: muted -> active green mic while talking
+  const mic=tile && tile.querySelector('[data-mic]');
+  if(mic){
+    mic.textContent = on ? '🎙️' : '🔇';
+    mic.classList.toggle('active',on);
+    mic.classList.toggle('micoff',!on);
+  }
+  // reflect in the participants panel too
+  const prow=document.querySelector(`#plist li[data-slug="${slug}"] .pmic`);
+  if(prow){ prow.textContent = on ? '🎙️' : '🔇';
+    prow.classList.toggle('on',on); prow.classList.toggle('off',!on); }
+}
+function showCaption(slug,text){
+  const cap=document.querySelector(`[data-slug="${slug}"] .caption`);
+  if(cap){ cap.textContent=text; cap.classList.add('show'); }
+}
+
+// speak replies one at a time; highlight the active tile like Zoom's speaker ring
+function speakReplies(replies){
+  let i=0;
+  const next=()=>{
+    if(i>0) setSpeaking(replies[i-1].slug,false);
+    if(i>=replies.length) return;
+    const rep=replies[i++];
+    setSpeaking(rep.slug,true);
+    if(!voicesOn||!window.speechSynthesis){ setTimeout(next,900); return; }
+    const style=VOICE_STYLE[rep.slug]||{pitch:1,rate:1,match:['en']};
+    const u=new SpeechSynthesisUtterance(rep.text);
+    const v=pickVoice(style.match); if(v)u.voice=v;
+    u.pitch=style.pitch; u.rate=style.rate;
+    u.onend=next; u.onerror=next;
+    window.speechSynthesis.speak(u);
+  };
+  if(voicesOn&&window.speechSynthesis) window.speechSynthesis.cancel();
+  next();
+}
+
+// ---------- Live call ----------
+async function submitPolicy(){
+  const policy=document.getElementById('policy').value.trim();
+  if(!policy) return;
+  const status=document.getElementById('live-status');
+  const send=document.getElementById('send');
+  send.disabled=true;
+  status.textContent='Representatives are considering the proposal…';
+
+  showCaption('you',policy);
+  addChat('You (chair)', 'Policy to the floor: '+policy);
+  ['great_white_shark','australian_sea_lion','beach_users'].forEach(s=>{
+    showCaption(s,'…'); });
+
+  try{
+    const r=await fetch('/api/respond',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({policy})});
+    const data=await r.json();
+    if(data.error){ status.textContent=data.error; }
+    else{
+      data.replies.forEach(rep=>{ showCaption(rep.slug,rep.text);
+        addChat(rep.name, rep.text); });
+      status.textContent='All representatives have responded.';
+      speakReplies(data.replies);
+    }
+  }catch(e){ status.textContent='Error: '+e.message; }
+  send.disabled=false;
+}
+
+// ---------- Mic ----------
+let rec=null,listening=false;
+function toggleMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const mic=document.getElementById('mic');
+  if(!SR){ document.getElementById('live-status').textContent=
+    'Speech recognition not supported — use Chrome or Edge.'; return; }
+  if(listening){ rec.stop(); return; }
+  rec=new SR(); rec.lang='en-AU'; rec.interimResults=false;
+  rec.onstart=()=>{listening=true; mic.classList.remove('on'); mic.classList.add('off');
+    mic.querySelector('.glyph').textContent='🔴';
+    mic.childNodes[mic.childNodes.length-1].textContent='Listening';};
+  rec.onend=()=>{listening=false; mic.classList.remove('off'); mic.classList.add('on');
+    mic.querySelector('.glyph').textContent='🎤';
+    mic.childNodes[mic.childNodes.length-1].textContent='Unmute';};
+  rec.onresult=(e)=>{ document.getElementById('policy').value=e.results[0][0].transcript;
+    submitPolicy(); };
+  rec.start();
+}
+
+// ---------- Document upload ----------
+const fileInput=document.getElementById('fileInput');
+const drop=document.getElementById('drop');
+const docStatus=document.getElementById('doc-status');
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{
+  e.preventDefault(); drop.classList.add('hover');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{
+  e.preventDefault(); drop.classList.remove('hover');}));
+drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change',()=>{ if(fileInput.files[0]) upload(fileInput.files[0]); });
+async function upload(file){
+  docStatus.textContent=`Analysing "${file.name}" across all representatives… this can take a minute.`;
+  const fd=new FormData(); fd.append('file',file);
+  try{
+    const r=await fetch('/api/analyse',{method:'POST',body:fd});
+    if(!r.ok){ const j=await r.json().catch(()=>({error:'Server error'}));
+      docStatus.textContent=j.error||'Analysis failed.'; return; }
+    const blob=await r.blob(); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='policy_analysis.docx'; a.click();
+    URL.revokeObjectURL(url);
+    docStatus.textContent='Report downloaded: policy_analysis.docx';
+  }catch(e){ docStatus.textContent='Error: '+e.message; }
+}
+</script>
+</body>
+</html>

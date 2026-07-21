@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Council of Species — Team 56 · Project Platypus</title>
+    <style>
+      :root {
+        --abyss: #03181f;
+        --deep: #082a30;
+        --teal: #33d6c0;
+        --teal-d: #1a7a72;
+        --gold: #f4c95d;
+        --coral: #f96167;
+        --ice: #d6efe9;
+        --mute: #6f9a95;
+        --line: #0f3d42;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: radial-gradient(
+          130% 100% at 50% 0%,
+          #0a3b40 0%,
+          var(--abyss) 72%
+        );
+        color: var(--ice);
+        min-height: 100%;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* header */
+      .top {
+        padding: 26px 32px 0;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .fin {
+        width: 36px;
+        height: 36px;
+        flex: none;
+      }
+      .eyebrow {
+        font-size: 11px;
+        color: var(--teal);
+        letter-spacing: 3px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .top .titles {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .top h1 {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+      }
+
+      /* hero copy */
+      .hero {
+        text-align: center;
+        padding: 34px 24px 6px;
+      }
+      .hero h2 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(28px, 5vw, 46px);
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.5px;
+      }
+      .hero h2 .accent {
+        color: var(--teal);
+      }
+      .hero p {
+        max-width: 660px;
+        margin: 16px auto 0;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #b6d4cd;
+      }
+
+      /* the council scene */
+      .scene-wrap {
+        flex: 1;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding: 10px 16px 0;
+        min-height: 340px;
+      }
+      svg.council {
+        width: min(1040px, 96vw);
+        height: auto;
+        display: block;
+      }
+
+      /* seated figures stay put — no lift, no jitter on tap.
+     A gentle still highlight on hover instead of movement. */
+      .seat {
+        cursor: default;
+      }
+      .seat .label {
+        opacity: 0;
+        transition: opacity 0.2s;
+        font-size: 11px;
+        font-weight: 700;
+        fill: var(--ice);
+      }
+      .seat:hover .label {
+        opacity: 1;
+      }
+      .seat:hover {
+        filter: brightness(1.12);
+      }
+
+      /* CTA */
+      .cta-wrap {
+        text-align: center;
+        padding: 22px 24px 40px;
+      }
+      .cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--teal);
+        color: #04222a;
+        font-weight: 800;
+        font-size: 17px;
+        border: none;
+        border-radius: 999px;
+        padding: 16px 30px;
+        cursor: pointer;
+        box-shadow: 0 12px 34px rgba(51, 214, 192, 0.32);
+        transition:
+          transform 0.15s,
+          box-shadow 0.15s;
+        text-decoration: none;
+      }
+      .cta:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 18px 44px rgba(51, 214, 192, 0.45);
+      }
+      .cta:focus-visible {
+        outline: 3px solid var(--gold);
+        outline-offset: 3px;
+      }
+      .cta svg {
+        width: 22px;
+        height: 22px;
+      }
+      .cta-note {
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--mute);
+      }
+
+      /* ambient bubbles rising over the whole page */
+      .bubbles {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+      }
+      .bubble {
+        position: absolute;
+        bottom: -40px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(214, 242, 255, 0.5),
+          rgba(214, 242, 255, 0.05)
+        );
+        animation: rise linear infinite;
+      }
+      @keyframes rise {
+        to {
+          transform: translateY(-115vh) translateX(var(--drift, 20px));
+          opacity: 0;
+        }
+      }
+
+      .content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .bubble {
+          display: none;
+        }
+        .seat {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bubbles" id="bubbles"></div>
+
+    <div class="content">
+      <div class="top">
+        <svg class="fin" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M3 18c4 0 6-1 8-4 2-4 3-9 4-11 1 3 2 8 5 10 2 1.5 1 5-2 5H3z"
+            fill="#33d6c0"
+          />
+          <path
+            d="M3 20c3-.5 6-.5 9 0 3 .5 6 .5 9 0"
+            stroke="#33d6c0"
+            stroke-width="1.4"
+            fill="none"
+          />
+        </svg>
+        <div class="titles">
+          <span class="eyebrow">Team 56 · Project Platypus</span>
+          <h1>The Council of Species</h1>
+        </div>
+      </div>
+
+      <div class="hero">
+        <h2>
+          Every species deserves a
+          <span class="accent">seat at the table</span>.
+        </h2>
+        <p>
+          Our framework gives non-human species an evidence-based voice in the
+          decisions that affect them — each one represented like an ambassador,
+          arguing from verified science. Today, one delegate takes the floor.
+        </p>
+      </div>
+
+      <div class="scene-wrap">
+        <!-- The council: human + animal delegates seated at a curved bench -->
+        <svg
+          class="council"
+          viewBox="0 0 1040 380"
+          xmlns="http://www.w3.org/2000/svg"
+          role="img"
+          aria-label="A council of people and animals seated together"
+        >
+          <defs>
+            <linearGradient id="bench" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#0f4149" />
+              <stop offset="1" stop-color="#082a30" />
+            </linearGradient>
+            <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#0a343a" />
+              <stop offset="1" stop-color="#03181f" />
+            </linearGradient>
+          </defs>
+
+          <!-- floor -->
+          <ellipse cx="520" cy="360" rx="520" ry="46" fill="url(#floor)" />
+
+          <!-- back curved bench -->
+          <path
+            d="M70 250 Q520 180 970 250 L970 300 Q520 232 70 300 Z"
+            fill="url(#bench)"
+          />
+          <path
+            d="M70 250 Q520 180 970 250"
+            fill="none"
+            stroke="#1a7a72"
+            stroke-width="2"
+            opacity=".6"
+          />
+
+          <!-- ===== DELEGATES (each a .seat group) ===== -->
+          <!-- Human delegate (left) -->
+          <g class="seat" transform="translate(150,150)">
+            <text class="label" x="0" y="-58" text-anchor="middle">
+              Policymaker
+            </text>
+            <ellipse
+              cx="0"
+              cy="120"
+              rx="42"
+              ry="10"
+              fill="#000"
+              opacity=".25"
+            />
+            <rect
+              x="-26"
+              y="60"
+              width="52"
+              height="60"
+              rx="14"
+              fill="#3a6f78"
+            />
+            <circle cx="0" cy="38" r="24" fill="#e8c9a0" />
+            <path d="M-24 34 Q0 8 24 34 L24 24 Q0 2 -24 24 Z" fill="#5a3b2a" />
+          </g>
+
+          <!-- Sea turtle -->
+          <g class="seat" transform="translate(300,158)">
+            <text class="label" x="0" y="-50" text-anchor="middle">
+              Sea Turtle
+            </text>
+            <ellipse
+              cx="0"
+              cy="112"
+              rx="46"
+              ry="10"
+              fill="#000"
+              opacity=".25"
+            />
+            <ellipse cx="0" cy="70" rx="40" ry="34" fill="#2f7d5b" />
+            <path
+              d="M-30 60 L0 44 L30 60 L18 84 L-18 84 Z"
+              fill="#256b4c"
+              opacity=".7"
+            />
+            <circle cx="0" cy="34" r="16" fill="#3a8f68" />
+            <circle cx="-5" cy="32" r="2.4" fill="#04222a" />
+            <circle cx="5" cy="32" r="2.4" fill="#04222a" />
+          </g>
+
+          <!-- Human delegate (center-left) -->
+          <g class="seat" transform="translate(440,146)">
+            <text class="label" x="0" y="-58" text-anchor="middle">
+              Scientist
+            </text>
+            <ellipse
+              cx="0"
+              cy="122"
+              rx="42"
+              ry="10"
+              fill="#000"
+              opacity=".25"
+            />
+            <rect
+              x="-26"
+              y="62"
+              width="52"
+              height="60"
+              rx="14"
+              fill="#6f5aa0"
+            />
+            <circle cx="0" cy="40" r="24" fill="#c98f6a" />
+            <path d="M-24 40 Q0 12 24 40 L24 30 Q0 6 -24 30 Z" fill="#2a2a2a" />
+          </g>
+
+          <!-- SHARK — the delegate taking the floor (highlighted) -->
+          <g class="seat" id="sharkSeat" transform="translate(585,120)">
+            <text
+              class="label"
+              x="0"
+              y="-62"
+              text-anchor="middle"
+              style="opacity: 1; fill: #33d6c0"
+            >
+              Great White Shark — speaking
+            </text>
+            <ellipse cx="0" cy="150" rx="60" ry="12" fill="#000" opacity=".3" />
+            <!-- glow ring -->
+            <circle cx="0" cy="70" r="70" fill="#33d6c0" opacity=".10">
+              <animate
+                attributeName="r"
+                values="68;72;68"
+                dur="5s"
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="opacity"
+                values=".09;.13;.09"
+                dur="5s"
+                repeatCount="indefinite"
+              />
+            </circle>
+            <!-- shark body -->
+            <path
+              d="M-58 74 Q-10 52 44 66 Q58 68 62 74 Q58 82 44 84 Q-10 96 -58 74 Z"
+              fill="#9fb6c4"
+            />
+            <path
+              d="M-58 74 Q-10 92 44 84 Q30 90 -20 90 Q-44 86 -58 74 Z"
+              fill="#eef4f7"
+            />
+            <!-- dorsal fin -->
+            <path d="M2 54 L16 26 L26 56 Z" fill="#8aa2b1" />
+            <!-- tail -->
+            <path d="M-58 74 L-78 58 L-72 74 L-78 90 Z" fill="#8aa2b1" />
+            <!-- eye + gill -->
+            <circle cx="40" cy="72" r="3.4" fill="#05141f" />
+            <path
+              d="M22 66 Q24 74 22 82"
+              stroke="#6f8794"
+              stroke-width="1.6"
+              fill="none"
+            />
+            <path
+              d="M28 66 Q30 74 28 82"
+              stroke="#6f8794"
+              stroke-width="1.6"
+              fill="none"
+            />
+          </g>
+
+          <!-- Dolphin -->
+          <g class="seat" transform="translate(740,150)">
+            <text class="label" x="0" y="-54" text-anchor="middle">
+              Dolphin
+            </text>
+            <ellipse
+              cx="0"
+              cy="118"
+              rx="44"
+              ry="10"
+              fill="#000"
+              opacity=".25"
+            />
+            <path
+              d="M-40 78 Q-4 54 46 70 Q30 82 -8 88 Q-32 86 -40 78 Z"
+              fill="#7fa8c4"
+            />
+            <path d="M4 60 L14 40 L22 62 Z" fill="#6f97b0" />
+            <path d="M-40 78 L-56 66 L-52 80 Z" fill="#6f97b0" />
+            <circle cx="34" cy="70" r="3" fill="#04222a" />
+          </g>
+
+          <!-- Human delegate (right) -->
+          <g class="seat" transform="translate(880,150)">
+            <text class="label" x="0" y="-58" text-anchor="middle">
+              Community rep
+            </text>
+            <ellipse
+              cx="0"
+              cy="120"
+              rx="42"
+              ry="10"
+              fill="#000"
+              opacity=".25"
+            />
+            <rect
+              x="-26"
+              y="60"
+              width="52"
+              height="60"
+              rx="14"
+              fill="#c96a6a"
+            />
+            <circle cx="0" cy="38" r="24" fill="#a56a45" />
+            <path d="M-24 36 Q0 10 24 36 L24 26 Q0 4 -24 26 Z" fill="#1e1e1e" />
+          </g>
+        </svg>
+      </div>
+
+      <div class="cta-wrap">
+        <a class="cta" href="shark_3d_realmodel.html" id="goShark">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M4 12h14M13 7l5 5-5 5"
+              stroke="#04222a"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Hear the Shark Speak
+        </a>
+        <div class="cta-note">
+          Opens the interactive 3D shark — click a policy and it argues its case
+          aloud.
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ambient rising bubbles across the page
+      (function () {
+        const wrap = document.getElementById("bubbles");
+        const N = 26;
+        for (let i = 0; i < N; i++) {
+          const b = document.createElement("div");
+          b.className = "bubble";
+          const size = 6 + Math.random() * 22;
+          b.style.width = b.style.height = size + "px";
+          b.style.left = Math.random() * 100 + "vw";
+          b.style.setProperty("--drift", (Math.random() - 0.5) * 80 + "px");
+          b.style.animationDuration = 9 + Math.random() * 12 + "s";
+          b.style.animationDelay = -Math.random() * 15 + "s";
+          b.style.opacity = (0.25 + Math.random() * 0.4).toFixed(2);
+          wrap.appendChild(b);
+        }
+      })();
+
+      // graceful check: if the shark page isn't reachable (e.g. opened without a server
+      // alongside the file), the link still works when served; we just add a tiny guard
+      // so a mis-set filename gives a clear hint rather than a blank 404.
+      document
+        .getElementById("goShark")
+        .addEventListener("click", function (e) {
+          // let the browser navigate normally; this is only a friendly console note
+          console.log(
+            "Navigating to shark_3d_realmodel.html — ensure it is in the same folder."
+          );
+        });
+    </script>
+  </body>
+</html>
