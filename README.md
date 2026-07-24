@@ -19,8 +19,8 @@ Representatives argue purely from self-interest. Conflict between them is intent
 |  | Representative | Scientific name | Type | Data status | IUCN status |
 |---|---|---|---|---|---|
 | <img src="shark.jpg" width="70"> | Great White Shark | *Carcharodon carcharias* | species | data-rich | Vulnerable |
-| <img src="sealion.jpg" width="70"> | Australian Sea Lion | *Neophoca cinerea* | species | data-rich | Endangered |
-| <img src="beachusers.jpg" width="70"> | Beach Users | — | community | data-poor | — |
+| <img src="sea_lion.jpg" width="70"> | Australian Sea Lion | *Neophoca cinerea* | species | data-rich | Endangered |
+| <img src="beach_person.jpg" width="70"> | Beach Users | — | community | data-poor | — |
 
 **Beach Users** is deliberately data-poor. Human community interests have no equivalent to IUCN or GBIF, so this constituency carries low-confidence, low-tier evidence. It is included on purpose to demonstrate that the system flags evidence quality instead of dressing up a weak claim as a strong one.
 
