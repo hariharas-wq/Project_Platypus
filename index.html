@@ -362,7 +362,11 @@ function toggleVoice(){
   voicesOn=!voicesOn;
   document.getElementById('voice').classList.toggle('on',voicesOn);
   document.getElementById('voice').classList.toggle('off',!voicesOn);
-  if(!voicesOn) window.speechSynthesis.cancel();
+  if(!voicesOn){
+    window.speechSynthesis.cancel();
+    if(speakTimer){ clearTimeout(speakTimer); speakTimer=null; }
+    ['great_white_shark','australian_sea_lion','beach_users'].forEach(s=>setSpeaking(s,false));
+  }
 }
 
 function setSpeaking(slug,on){
@@ -386,22 +390,47 @@ function showCaption(slug,text){
 }
 
 // speak replies one at a time; highlight the active tile like Zoom's speaker ring
+// Highlight is TIMER-driven, not speech-driven.
+// Screen sharing (Zoom) throttles Chrome's speech engine, which fires 'onend'
+// early and used to jump the green ring to the next speaker mid-sentence.
+// Now each representative is highlighted for a duration based on its text
+// length, so the indicator stays correct whether or not audio actually plays.
+let speakTimer=null;
+function estimateSpeakMs(text, rate){
+  const words = (text||'').trim().split(/\s+/).length;
+  const wpm = 165 * (rate || 1);           // rough speaking pace
+  const ms = (words / wpm) * 60000;
+  return Math.max(2600, Math.min(ms + 600, 26000)); // clamp for sanity
+}
 function speakReplies(replies){
+  if(speakTimer){ clearTimeout(speakTimer); speakTimer=null; }
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  // clear any leftover highlight
+  replies.forEach(r=>setSpeaking(r.slug,false));
+
   let i=0;
   const next=()=>{
     if(i>0) setSpeaking(replies[i-1].slug,false);
-    if(i>=replies.length) return;
+    if(i>=replies.length){ speakTimer=null; return; }
     const rep=replies[i++];
     setSpeaking(rep.slug,true);
-    if(!voicesOn||!window.speechSynthesis){ setTimeout(next,900); return; }
+
     const style=VOICE_STYLE[rep.slug]||{pitch:1,rate:1,match:['en']};
-    const u=new SpeechSynthesisUtterance(rep.text);
-    const v=pickVoice(style.match); if(v)u.voice=v;
-    u.pitch=style.pitch; u.rate=style.rate;
-    u.onend=next; u.onerror=next;
-    window.speechSynthesis.speak(u);
+
+    // Fire the audio (best effort) but do NOT let it drive the sequence.
+    if(voicesOn && window.speechSynthesis){
+      try{
+        const u=new SpeechSynthesisUtterance(rep.text);
+        const v=pickVoice(style.match); if(v)u.voice=v;
+        u.pitch=style.pitch; u.rate=style.rate;
+        window.speechSynthesis.speak(u);
+      }catch(e){ /* ignore — timing is independent */ }
+    }
+
+    // Advance on our own clock.
+    const hold = voicesOn ? estimateSpeakMs(rep.text, style.rate) : 1400;
+    speakTimer=setTimeout(next, hold);
   };
-  if(voicesOn&&window.speechSynthesis) window.speechSynthesis.cancel();
   next();
 }
 
