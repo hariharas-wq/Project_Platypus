@@ -1,0 +1,13 @@
+Download Speak NG locally...
+Add it to path
+and specify the path in "stream_bridge.py" file
+
+Create a .env file locally, and:
+Generate and enter "GROQ" api token here or directly in the "koala_bot_claude.py" file where it is specified.
+
+Run:
+
+1. Run "stream_bridge.py" in a terminal
+2. Open another terminal and run "koala_bot_claude.py". This is where queries are entered and chunked later to send it to blender by "stream_bridge.py" file.
+3. Open "koala_git\uploads_files_5014700_Koala.blend" file in blender, and press run button. Switch to console view via Windows options in blender to view the process in backend.
+4. Enter any query in the specified terminal 

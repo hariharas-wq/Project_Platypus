@@ -1,0 +1,23 @@
+# --- Secrets & Environment Variables ---
+.env
+*.env
+.env.*
+!.env.example
+
+# --- Python & Virtual Environments ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+*.log
+
+# --- Generated Audio Buffers ---
+koala_speech.wav
+*.temp.wav
+# (Note: We leave aussie_clip*.wav untracked here so your reference voice files upload safely!)
+
+# --- Large Local Binaries & Models (Optional for GitHub's 100MB file limit) ---
+Rhubarb-Lip-Sync*/
+tts_models/
