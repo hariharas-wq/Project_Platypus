@@ -48,6 +48,8 @@ live, spoken interaction:
   browsers and removing the dependency on the client's installed voices.
 - **`koala_blender/`** — Blender assets for the koala representative's avatar,
   intended to be driven by the audio pipeline.
+  
+![Koala 3D](koala_blender/sc5.png)
 
 This track is exploratory and is not required to run the core demo
 (`server.py` + `index.html`).
