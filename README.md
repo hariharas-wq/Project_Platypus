@@ -35,6 +35,23 @@ Representatives argue purely from self-interest. Conflict between them is intent
 
 ![Participants and chat panels](docs/sc2.png)
 
+## Real-time RAG stream & audio pipeline
+
+An extension track that moves a representative from turn-based text replies toward
+live, spoken interaction:
+
+- **`koala_vector_db_claude/`** — the retrieval layer. Evidence is embedded into a
+  vector store and streamed to the model at inference time, so responses stay
+  grounded while being generated incrementally rather than in one blocking call.
+- **`eSpeak NG/`** — a local, offline speech synthesiser. Unlike the Web Speech API
+  used on the meeting screen, this runs server-side, giving consistent voices across
+  browsers and removing the dependency on the client's installed voices.
+- **`koala_blender/`** — Blender assets for the koala representative's avatar,
+  intended to be driven by the audio pipeline.
+
+This track is exploratory and is not required to run the core demo
+(`server.py` + `index.html`).
+
 ## Project structure
 
 | File | Purpose |
